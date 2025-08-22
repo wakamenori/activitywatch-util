@@ -1,14 +1,31 @@
 import Database from "better-sqlite3";
+import { homedir, platform } from "os";
+import { join } from "path";
 import type {
 	BucketModel,
 	BucketModelRow,
 	EventModel,
 } from "@/types/activitywatch";
 
-// Database path from environment variable or default
+// Get default database path based on operating system
+function getDefaultDBPath(): string {
+	const home = homedir();
+	const os = platform();
+	
+	switch (os) {
+		case "darwin": // macOS
+			return join(home, "Library", "Application Support", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
+		case "win32": // Windows
+			return join(home, "AppData", "Local", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
+		case "linux":
+		default: // Linux and others
+			return join(home, ".local", "share", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
+	}
+}
+
+// Database path from environment variable or OS-specific default
 const DB_PATH =
-	process.env.DATABASE_URL?.replace("file:", "") ||
-	"/Users/matsukokuumahikari/Library/Application Support/activitywatch/aw-server/peewee-sqlite.v2.db";
+	process.env.DATABASE_URL?.replace("file:", "") || getDefaultDBPath();
 
 // Create database connection (read-only)
 let db: Database.Database | null = null;

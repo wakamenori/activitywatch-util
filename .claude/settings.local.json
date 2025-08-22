@@ -13,7 +13,9 @@
       "mcp__o3__o3-search",
       "Bash(sqlite3:*)",
       "Bash(pnpm remove:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
     "ask": []

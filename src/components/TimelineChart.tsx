@@ -6,7 +6,7 @@ interface Event {
 	id: number;
 	bucket_id: number;
 	timestamp: Date;
-	duration: any; // Decimal type from Prisma
+	duration: number | string; // Can be either number or string from database
 	datastr: string;
 	bucketmodel: {
 		key: number;
