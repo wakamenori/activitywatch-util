@@ -5,7 +5,15 @@
       "Bash(pnpm install:*)",
       "Bash(pnpm run:*)",
       "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm exec prisma:*)",
+      "mcp__serena__list_dir",
+      "mcp__o3__o3-search",
+      "Bash(sqlite3:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

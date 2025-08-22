@@ -9,13 +9,10 @@
     "format": "biome check --write .",
     "format:unsafe": "biome check --write --unsafe .",
     "lint": "biome lint .",
-    "typecheck": "tsc --noEmit",
-    "db:pull": "prisma db pull",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.14.0",
+    "better-sqlite3": "^12.2.0",
     "next": "15.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -23,10 +20,10 @@
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "prisma": "^6.14.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

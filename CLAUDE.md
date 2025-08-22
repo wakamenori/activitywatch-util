@@ -14,7 +14,7 @@ ActivityWatch utility application built with Next.js 15, React 19, and TypeScrip
 - **UI Library**: React 19.1.0
 - **Language**: TypeScript 5
 - **Styling**: Tailwind CSS 4
-- **Database ORM**: Prisma 6.14.0 (READ-ONLY access to ActivityWatch SQLite database)
+- **Database**: better-sqlite3 12.2.0 (READ-ONLY access to ActivityWatch SQLite database)
 - **Code Quality**: Biome 2.2.0 (formatter and linter)
 - **Package Manager**: pnpm
 
@@ -23,7 +23,12 @@ ActivityWatch utility application built with Next.js 15, React 19, and TypeScrip
 ```
 activitywatch-util/
 ├── src/
-│   └── app/           # Next.js App Router pages
+│   ├── app/           # Next.js App Router pages
+│   ├── components/    # React components
+│   ├── lib/           # Utility functions and database access
+│   │   └── database.ts # better-sqlite3 database connection
+│   └── types/         # TypeScript type definitions
+│       └── activitywatch.ts # ActivityWatch data models
 ├── public/            # Static assets
 ├── biome.json         # Biome configuration
 ├── next.config.ts     # Next.js configuration
@@ -43,9 +48,6 @@ pnpm run format       # Format code with Biome
 pnpm run format:unsafe # Format with unsafe fixes
 pnpm run lint         # Run Biome linter
 pnpm run typecheck    # Type check with TypeScript
-pnpm run db:pull      # Pull schema from ActivityWatch database
-pnpm run db:generate  # Generate Prisma Client
-pnpm run db:studio    # Open Prisma Studio to browse data (READ-ONLY)
 ```
 
 ### Code Style
@@ -87,18 +89,37 @@ This utility is designed to work with ActivityWatch data. It connects to the loc
 **IMPORTANT: The database connection is READ-ONLY. Never attempt to modify the ActivityWatch database.**
 
 - **Database Location**: `~/Library/Application Support/activitywatch/aw-server/peewee-sqlite.v2.db`
-- **Access Method**: Prisma ORM with read-only helper functions in `src/lib/prisma.ts`
+- **Access Method**: better-sqlite3 with read-only connection mode in `src/lib/database.ts`
 - **Available Data**:
   - `bucketmodel`: Activity tracking buckets (different trackers like window, AFK, etc.)
   - `eventmodel`: Individual activity events with timestamps and duration
 
 ### Safe Database Operations
 
-Use the `activityWatchDB` helper from `src/lib/prisma.ts`:
+Use the `activityWatchDB` helper from `src/lib/database.ts`:
+
 - `getBuckets()`: Get all activity buckets
 - `getBucket(id)`: Get a specific bucket
 - `getEvents(bucketId?, limit)`: Get recent events
 - `getEventsByTimeRange(start, end, bucketId?)`: Get events in a time range
+
+### Type Safety
+
+TypeScript interfaces are defined in `src/types/activitywatch.ts`:
+
+- `BucketModel`: Represents an ActivityWatch bucket (tracker)
+- `EventModel`: Represents an activity event with duration and metadata
+- Full type safety for all database operations
+
+### Why better-sqlite3?
+
+We use better-sqlite3 instead of Prisma because:
+
+- **Encoding Issues**: ActivityWatch database may contain non-UTF-8 encoded data that Prisma cannot handle
+- **True Read-Only**: Enforces read-only access with `readonly: true` option
+- **Better Control**: Direct control over character encoding and data conversion
+- **Performance**: Faster and more lightweight than Prisma ORM
+- **Reliability**: Avoids "Conversion failed: input contains invalid characters" errors
 
 ### Future Features
 
@@ -106,4 +127,3 @@ Use the `activityWatchDB` helper from `src/lib/prisma.ts`:
 - Activity analysis tools
 - Export functionality
 - Custom reporting features
-
