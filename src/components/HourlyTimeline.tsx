@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 interface TimelineEvent {
@@ -196,12 +195,6 @@ export function HourlyTimeline({
 		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
 			<div className="flex justify-between items-center mb-4">
 				<div className="flex items-center gap-4">
-					<Link
-						href="/dashboard"
-						className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-					>
-						← ダッシュボードに戻る
-					</Link>
 					<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
 						直近{getTimeRangeLabel(timeRange)}のタイムライン
 					</h2>
