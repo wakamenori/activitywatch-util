@@ -15,7 +15,11 @@ import type {
 import {
 	getTimeRangeLabel,
 	sortTimelineTracks,
+	detectAppCategory,
+	getColorForCategory,
+	CATEGORIES,
 } from "./timeline/timelineUtils";
+import { TimelineLegend } from "./timeline/TimelineLegend";
 
 export function HourlyTimeline({
 	timeRange = "60m",
@@ -98,6 +102,22 @@ export function HourlyTimeline({
 	const endTime = new Date(data.endTime);
 	const totalDuration = endTime.getTime() - startTime.getTime();
 
+	// Build legend from currentwindow categories present in data
+	const currentWindowTrack = data.timeline.find((t) => t.type === "currentwindow");
+	const usedCategories = new Set<string>();
+	if (currentWindowTrack) {
+		for (const e of currentWindowTrack.events) {
+			const app = (e.data.app as string) || "";
+			const title = (e.data.title as string) || "";
+			const cat = detectAppCategory(app, title);
+			usedCategories.add(cat);
+		}
+	}
+	const legendItems = CATEGORIES.filter((c) => usedCategories.has(c)).map((c) => ({
+		label: c,
+		color: getColorForCategory(c),
+	}));
+
 	return (
 		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
 			<TimelineHeader
@@ -108,6 +128,9 @@ export function HourlyTimeline({
 			/>
 
 			<TimeAxis startTime={data.startTime} />
+
+			{/* Legend for currentwindow categories */}
+			<TimelineLegend items={legendItems} />
 
 			<div className="space-y-4 relative" ref={containerRef}>
 				{sortTimelineTracks(data.timeline).map((track) => (

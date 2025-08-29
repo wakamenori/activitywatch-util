@@ -25,7 +25,7 @@ export type AppCategory =
 	| "System"
 	| "Other";
 
-const CATEGORY_COLORS: Record<AppCategory, string> = {
+export const CATEGORY_COLORS: Record<AppCategory, string> = {
 	Browser: "#3B82F6", // blue-500
 	Editor: "#8B5CF6", // violet-500
 	Terminal: "#10B981", // emerald-500
@@ -38,6 +38,20 @@ const CATEGORY_COLORS: Record<AppCategory, string> = {
 	System: "#64748B", // slate-500
 	Other: "#6B7280", // gray-500
 };
+
+export const CATEGORIES: AppCategory[] = [
+	"Browser",
+	"Editor",
+	"Terminal",
+	"Communication",
+	"Design",
+	"Media",
+	"Docs",
+	"DevTools",
+	"File",
+	"System",
+	"Other",
+];
 
 export const detectAppCategory = (
 	app: string,
