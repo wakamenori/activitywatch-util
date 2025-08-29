@@ -1,3 +1,5 @@
+import type { TimelineTrack } from "./TimelineTypes";
+
 export const getColorForType = (type: string): string => {
 	const colors: Record<string, string> = {
 		currentwindow: "#3B82F6",
@@ -33,4 +35,30 @@ export const getTimeRangeLabel = (range: string): string => {
 		default:
 			return "1時間";
 	}
+};
+
+// Desired track order; others appear after these in original order
+const TRACK_ORDER = [
+	"afkstatus",
+	"currentwindow",
+	"web.tab.current",
+	"app.editor.activity",
+] as const;
+
+export const sortTimelineTracks = (
+	tracks: TimelineTrack[],
+): TimelineTrack[] => {
+	const priorityMap = new Map<string, number>();
+	TRACK_ORDER.forEach((t, i) => {
+		priorityMap.set(t, i);
+	});
+	return tracks.slice().sort((a, b) => {
+		const pa = priorityMap.get(a.type);
+		const pb = priorityMap.get(b.type);
+		const ai = pa === undefined ? Number.POSITIVE_INFINITY : pa;
+		const bi = pb === undefined ? Number.POSITIVE_INFINITY : pb;
+		if (ai !== bi) return ai - bi;
+		// Stable-ish fallback: keep original relative order for same priority
+		return 0;
+	});
 };

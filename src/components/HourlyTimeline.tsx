@@ -12,7 +12,10 @@ import type {
 	TimelineEvent,
 	TooltipState,
 } from "./timeline/TimelineTypes";
-import { getTimeRangeLabel } from "./timeline/timelineUtils";
+import {
+	getTimeRangeLabel,
+	sortTimelineTracks,
+} from "./timeline/timelineUtils";
 
 export function HourlyTimeline({
 	timeRange = "60m",
@@ -107,7 +110,7 @@ export function HourlyTimeline({
 			<TimeAxis startTime={data.startTime} />
 
 			<div className="space-y-4 relative" ref={containerRef}>
-				{data.timeline.map((track) => (
+				{sortTimelineTracks(data.timeline).map((track) => (
 					<TimelineTrackRow
 						key={track.type}
 						track={track}

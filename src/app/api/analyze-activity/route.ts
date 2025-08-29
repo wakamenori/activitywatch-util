@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { streamText, type LanguageModel } from "ai";
+import { type LanguageModel, streamText } from "ai";
 import { NextResponse } from "next/server";
 import { activityWatchDB } from "@/lib/database";
 import type { EventModel } from "@/types/activitywatch";
@@ -70,7 +70,8 @@ function formatActivityDataAsXML(events: EventModel[]): string {
 				if (data.url) dataInner += `<url>${escapeXML(data.url)}</url>`;
 				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;
 			} else if (type === "afkstatus") {
-				if (data.status) dataInner += `<status>${escapeXML(data.status)}</status>`;
+				if (data.status)
+					dataInner += `<status>${escapeXML(data.status)}</status>`;
 			}
 		} catch {
 			// Invalid JSON, skip data parsing
