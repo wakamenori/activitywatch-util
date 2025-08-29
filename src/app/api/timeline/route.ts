@@ -104,6 +104,8 @@ function processTimelineData(events: EventModel[]): TimelineTrack[] {
 					displayData = {
 						file: data.file || data.project || "editor",
 						language: data.language,
+						project: data.project,
+						branch: data.branch,
 					};
 					break;
 				default:

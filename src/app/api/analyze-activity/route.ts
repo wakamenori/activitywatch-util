@@ -2,10 +2,15 @@ import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { type LanguageModel, streamText } from "ai";
 import { NextResponse } from "next/server";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { activityWatchDB } from "@/lib/database";
 import type { EventModel } from "@/types/activitywatch";
 
 export const maxDuration = 30;
+
+// Ensure Node.js runtime to allow filesystem access
+export const runtime = "nodejs";
 
 function formatDuration(seconds: number): string {
 	const totalSeconds = Math.floor(seconds);
@@ -19,17 +24,12 @@ function formatDuration(seconds: number): string {
 }
 
 function formatTimestampToJST(date: Date): string {
-	return `${date
-		.toLocaleString("ja-JP", {
-			timeZone: "Asia/Tokyo",
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-		})
-		.replace(/\//g, "-")} (JST)`;
+	return date.toLocaleTimeString("ja-JP", {
+		timeZone: "Asia/Tokyo",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+	});
 }
 
 function escapeXML(str: string): string {
@@ -41,8 +41,36 @@ function escapeXML(str: string): string {
 		.replace(/'/g, "&#39;");
 }
 
+function basenameMaybe(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    const trimmed = value.replace(/[/\\]+$/, "");
+    const parts = trimmed.split(/[\\/]/);
+    const name = parts[parts.length - 1];
+    return name || trimmed;
+}
+
+function normalizePathLike(value: string): string {
+    // Convert Windows separators to POSIX-style and trim trailing separators
+    return value.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+
+function fileRelativeToProjectMaybe(fileVal: unknown, projectVal: unknown): string | null {
+    if (typeof fileVal !== "string" || typeof projectVal !== "string") return null;
+    const file = normalizePathLike(fileVal);
+    const project = normalizePathLike(projectVal);
+    if (!file || !project) return null;
+    // If file is under project, return clean relative path
+    if (file.startsWith(`${project}/`)) {
+        return file.slice(project.length + 1);
+    }
+    // Fallback: try Node's relative (may produce ../..). If it climbs out, prefer basename.
+    const rel = relative(project, file);
+    if (!rel.startsWith("..")) return rel;
+    return basenameMaybe(file) || null;
+}
+
 function formatActivityDataAsXML(events: EventModel[]): string {
-	const lines: string[] = ["<events>"];
+    const lines: string[] = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<events>"];
 
 	for (const event of events) {
 		const duration =
@@ -69,10 +97,24 @@ function formatActivityDataAsXML(events: EventModel[]): string {
 			} else if (type === "web.tab.current") {
 				if (data.url) dataInner += `<url>${escapeXML(data.url)}</url>`;
 				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;
-			} else if (type === "afkstatus") {
-				if (data.status)
-					dataInner += `<status>${escapeXML(data.status)}</status>`;
-			}
+            } else if (type === "afkstatus") {
+                if (data.status)
+                    dataInner += `<status>${escapeXML(data.status)}</status>`;
+            } else if (type === "app.editor.activity") {
+                if (data.file) {
+                    const rel = fileRelativeToProjectMaybe(data.file, data.project);
+                    const fileOut = rel || basenameMaybe(data.file) || String(data.file);
+                    dataInner += `<file>${escapeXML(fileOut)}</file>`;
+                }
+                if (data.language)
+                    dataInner += `<language>${escapeXML(data.language)}</language>`;
+                if (data.project) {
+                    const projName = basenameMaybe(data.project) || String(data.project);
+                    dataInner += `<project>${escapeXML(projName)}</project>`;
+                }
+                if (data.branch)
+                    dataInner += `<branch>${escapeXML(String(data.branch))}</branch>`;
+            }
 		} catch {
 			// Invalid JSON, skip data parsing
 		}
@@ -83,8 +125,8 @@ function formatActivityDataAsXML(events: EventModel[]): string {
 		lines.push(`<event>${parts.join("")}</event>`);
 	}
 
-	lines.push("</events>");
-	return lines.join("\n");
+    lines.push("</events>");
+    return lines.join("\n");
 }
 
 export async function POST(request: Request) {
@@ -126,8 +168,28 @@ export async function POST(request: Request) {
 			);
 		}
 
+		// Filter out zero-duration events across all buckets
+		const nonZeroEvents = sortedEvents.filter((e) => {
+			const d = typeof e.duration === "string" ? Number.parseFloat(e.duration) : e.duration;
+			return Number.isFinite(d) && d > 0;
+		});
+
 		// Transform data for LLM analysis
-		const activityXML = formatActivityDataAsXML(sortedEvents);
+		const activityXML = formatActivityDataAsXML(nonZeroEvents);
+
+        // Persist XML to xml/<timestamp>.xml for inspection
+        try {
+            const outDir = join(process.cwd(), "xml");
+            await mkdir(outDir, { recursive: true });
+
+            const nowTs = new Date();
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const ts = `${nowTs.getFullYear()}${pad(nowTs.getMonth() + 1)}${pad(nowTs.getDate())}-${pad(nowTs.getHours())}${pad(nowTs.getMinutes())}${pad(nowTs.getSeconds())}`;
+            const filename = join(outDir, `${ts}.xml`);
+			await writeFile(filename, activityXML, { encoding: "utf8" });
+        } catch (e) {
+            console.error("Failed to write XML file:", e);
+        }
 
 		// Create prompt for LLM
 		const timeRangeLabel =
