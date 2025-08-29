@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ActivitySummary } from "@/components/ActivitySummary";
 import { BucketList } from "@/components/BucketList";
@@ -20,7 +21,7 @@ interface Event {
 	id: number;
 	bucket_id: number;
 	timestamp: Date;
-	duration: any;
+	duration: number | string;
 	datastr: string;
 	bucketmodel: Bucket;
 }
@@ -82,6 +83,12 @@ export function DashboardClient({
 						</p>
 					</div>
 					<div className="flex items-center gap-4">
+						<Link
+							href="/timeline"
+							className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+						>
+							📊 タイムライン
+						</Link>
 						<button
 							type="button"
 							onClick={fetchLatestData}

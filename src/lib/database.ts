@@ -1,25 +1,61 @@
+import { homedir, platform } from "node:os";
+import { join } from "node:path";
 import Database from "better-sqlite3";
-import { homedir, platform } from "os";
-import { join } from "path";
 import type {
 	BucketModel,
 	BucketModelRow,
 	EventModel,
 } from "@/types/activitywatch";
 
+// Database row interface for event queries with joins
+interface EventQueryRow {
+	id: number;
+	bucket_id: number;
+	timestamp: string;
+	duration: string | number;
+	datastr: string | Buffer;
+	key: number;
+	bucket_id_str: string;
+	created: string;
+	name: string | null;
+	type: string;
+	client: string;
+	hostname: string;
+}
+
 // Get default database path based on operating system
 function getDefaultDBPath(): string {
 	const home = homedir();
 	const os = platform();
-	
+
 	switch (os) {
 		case "darwin": // macOS
-			return join(home, "Library", "Application Support", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
+			return join(
+				home,
+				"Library",
+				"Application Support",
+				"activitywatch",
+				"aw-server",
+				"peewee-sqlite.v2.db",
+			);
 		case "win32": // Windows
-			return join(home, "AppData", "Local", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
-		case "linux":
+			return join(
+				home,
+				"AppData",
+				"Local",
+				"activitywatch",
+				"aw-server",
+				"peewee-sqlite.v2.db",
+			);
 		default: // Linux and others
-			return join(home, ".local", "share", "activitywatch", "aw-server", "peewee-sqlite.v2.db");
+			return join(
+				home,
+				".local",
+				"share",
+				"activitywatch",
+				"aw-server",
+				"peewee-sqlite.v2.db",
+			);
 	}
 }
 
@@ -48,7 +84,7 @@ function getDatabase(): Database.Database {
 }
 
 // Helper function to safely convert potentially binary data to string
-function safeToString(data: any): string | null {
+function safeToString(data: unknown): string | null {
 	if (data === null || data === undefined) return null;
 
 	// If it's a Buffer, try to decode it
@@ -76,7 +112,7 @@ function safeToString(data: any): string | null {
 }
 
 // Helper function to parse datastr JSON safely
-function safeParseDataStr(datastr: any): string {
+function safeParseDataStr(datastr: unknown): string {
 	const str = safeToString(datastr);
 	if (!str) return "{}";
 
@@ -173,7 +209,7 @@ export const activityWatchDB = {
 			const stmt = db.prepare(query);
 			const rows = bucketId ? stmt.all(bucketId, limit) : stmt.all(limit);
 
-			return rows.map((row: any) => ({
+			return (rows as EventQueryRow[]).map((row: EventQueryRow) => ({
 				id: row.id,
 				bucket_id: row.bucket_id,
 				timestamp: new Date(row.timestamp),
@@ -206,6 +242,15 @@ export const activityWatchDB = {
 	): Promise<EventModel[]> => {
 		try {
 			const db = getDatabase();
+
+			// Format timestamps to match ActivityWatch format (with space instead of T)
+			const formatForSQL = (date: Date) => {
+				return date.toISOString().replace("T", " ").replace("Z", "+00:00");
+			};
+
+			const startTimeSQL = formatForSQL(startTime);
+			const endTimeSQL = formatForSQL(endTime);
+
 			let query = `
 				SELECT 
 					e.id,
@@ -233,10 +278,10 @@ export const activityWatchDB = {
 
 			const stmt = db.prepare(query);
 			const rows = bucketId
-				? stmt.all(startTime.toISOString(), endTime.toISOString(), bucketId)
-				: stmt.all(startTime.toISOString(), endTime.toISOString());
+				? stmt.all(startTimeSQL, endTimeSQL, bucketId)
+				: stmt.all(startTimeSQL, endTimeSQL);
 
-			return rows.map((row: any) => ({
+			return (rows as EventQueryRow[]).map((row: EventQueryRow) => ({
 				id: row.id,
 				bucket_id: row.bucket_id,
 				timestamp: new Date(row.timestamp),
