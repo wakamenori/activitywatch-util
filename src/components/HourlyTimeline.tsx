@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TimeAxis } from "./timeline/TimeAxis";
 import { TimelineHeader } from "./timeline/TimelineHeader";
 import { TimelineLegend } from "./timeline/TimelineLegend";
-import { TimelineStats } from "./timeline/TimelineStats";
 import { TimelineTooltip } from "./timeline/TimelineTooltip";
 import { TimelineTrackRow } from "./timeline/TimelineTrack";
 import type {
@@ -136,25 +135,23 @@ export function HourlyTimeline({
 			{/* Legend for currentwindow categories */}
 			<TimelineLegend items={legendItems} />
 
-			<div className="space-y-4 relative" ref={containerRef}>
-				{sortTimelineTracks(data.timeline).map((track) => (
-					<TimelineTrackRow
-						key={track.type}
-						track={track}
-						startTime={startTime}
-						totalDuration={totalDuration}
-						onMouseEnter={handleMouseEnter}
-						onMouseLeave={handleMouseLeave}
-					/>
-				))}
+
+			<div className="relative" ref={containerRef}>
+				<div className="space-y-4">
+					{sortTimelineTracks(data.timeline).map((track) => (
+						<TimelineTrackRow
+							key={track.type}
+							track={track}
+							startTime={startTime}
+							totalDuration={totalDuration}
+							onMouseEnter={handleMouseEnter}
+							onMouseLeave={handleMouseLeave}
+						/>
+					))}
+				</div>
 				{renderTooltip()}
 			</div>
 
-			<TimelineStats
-				totalEvents={data.totalEvents}
-				timeRangeLabel={getTimeRangeLabel(timeRange)}
-				tracksCount={data.timeline.length}
-			/>
 		</div>
 	);
 }
