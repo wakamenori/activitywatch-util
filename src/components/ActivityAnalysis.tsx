@@ -2,6 +2,8 @@
 
 import { useCompletion } from "@ai-sdk/react";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ActivityAnalysisProps {
 	timeRange?: string;
@@ -147,13 +149,36 @@ export function ActivityAnalysis({ timeRange = "60m" }: ActivityAnalysisProps) {
 
 				{(completion || (isLoading && completion)) && (
 					<div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
-						<div className="prose prose-gray dark:prose-invert max-w-none">
-							<div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed">
+						<div className="prose prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed">
+							<ReactMarkdown
+								remarkPlugins={[remarkGfm]}
+								components={{
+									a: ({ node, ...props }) => (
+										<a
+											{...props}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-blue-600 dark:text-blue-400 underline"
+										/>
+									),
+									code: ({ className, children, ...props }) => {
+										const isBlock = typeof className === "string" && className.includes("language-");
+										return (
+											<code
+												className={`${className ?? ""} ${isBlock ? "block p-3 rounded bg-gray-100 dark:bg-gray-800 overflow-auto" : "px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800"}`}
+												{...props}
+											>
+												{children}
+											</code>
+										);
+									},
+								}}
+							>
 								{completion}
-								{isLoading && (
-									<span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse" />
-								)}
-							</div>
+							</ReactMarkdown>
+							{isLoading && (
+								<span className="inline-block w-2 h-5 bg-blue-500 ml-1 animate-pulse" />
+							)}
 						</div>
 					</div>
 				)}
