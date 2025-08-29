@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TimeAxis } from "./timeline/TimeAxis";
 import { TimelineHeader } from "./timeline/TimelineHeader";
+import { TimelineLegend } from "./timeline/TimelineLegend";
 import { TimelineStats } from "./timeline/TimelineStats";
 import { TimelineTooltip } from "./timeline/TimelineTooltip";
 import { TimelineTrackRow } from "./timeline/TimelineTrack";
@@ -13,13 +14,12 @@ import type {
 	TooltipState,
 } from "./timeline/TimelineTypes";
 import {
-	getTimeRangeLabel,
-	sortTimelineTracks,
+	CATEGORIES,
 	detectAppCategory,
 	getColorForCategory,
-	CATEGORIES,
+	getTimeRangeLabel,
+	sortTimelineTracks,
 } from "./timeline/timelineUtils";
-import { TimelineLegend } from "./timeline/TimelineLegend";
 
 export function HourlyTimeline({
 	timeRange = "60m",
@@ -103,7 +103,9 @@ export function HourlyTimeline({
 	const totalDuration = endTime.getTime() - startTime.getTime();
 
 	// Build legend from currentwindow categories present in data
-	const currentWindowTrack = data.timeline.find((t) => t.type === "currentwindow");
+	const currentWindowTrack = data.timeline.find(
+		(t) => t.type === "currentwindow",
+	);
 	const usedCategories = new Set<string>();
 	if (currentWindowTrack) {
 		for (const e of currentWindowTrack.events) {
@@ -113,10 +115,12 @@ export function HourlyTimeline({
 			usedCategories.add(cat);
 		}
 	}
-	const legendItems = CATEGORIES.filter((c) => usedCategories.has(c)).map((c) => ({
-		label: c,
-		color: getColorForCategory(c),
-	}));
+	const legendItems = CATEGORIES.filter((c) => usedCategories.has(c)).map(
+		(c) => ({
+			label: c,
+			color: getColorForCategory(c),
+		}),
+	);
 
 	return (
 		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">

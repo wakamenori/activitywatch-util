@@ -24,4 +24,3 @@ export function TimelineLegend({ items }: TimelineLegendProps) {
 		</div>
 	);
 }
-

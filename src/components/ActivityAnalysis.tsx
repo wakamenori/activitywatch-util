@@ -162,7 +162,9 @@ export function ActivityAnalysis({ timeRange = "60m" }: ActivityAnalysisProps) {
 										/>
 									),
 									code: ({ className, children, ...props }) => {
-										const isBlock = typeof className === "string" && className.includes("language-");
+										const isBlock =
+											typeof className === "string" &&
+											className.includes("language-");
 										return (
 											<code
 												className={`${className ?? ""} ${isBlock ? "block p-3 rounded bg-gray-100 dark:bg-gray-800 overflow-auto" : "px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800"}`}

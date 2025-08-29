@@ -51,12 +51,14 @@ export function TimelineTooltip({
 					<>
 						{filePath && (
 							<div>
-								<span className="text-gray-400">ファイル:</span> {basename(filePath)}
+								<span className="text-gray-400">ファイル:</span>{" "}
+								{basename(filePath)}
 							</div>
 						)}
 						{project && (
 							<div>
-								<span className="text-gray-400">プロジェクト:</span> {basename(project) || project}
+								<span className="text-gray-400">プロジェクト:</span>{" "}
+								{basename(project) || project}
 							</div>
 						)}
 						{language && (

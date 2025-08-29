@@ -53,10 +53,7 @@ export const CATEGORIES: AppCategory[] = [
 	"Other",
 ];
 
-export const detectAppCategory = (
-	app: string,
-	title: string,
-): AppCategory => {
+export const detectAppCategory = (app: string, title: string): AppCategory => {
 	const a = app.toLowerCase();
 	const t = title.toLowerCase();
 
@@ -72,7 +69,8 @@ export const detectAppCategory = (
 	if (
 		/(code|cursor|vscode|webstorm|intellij|pycharm|goland|xcode|sublime)/.test(
 			a,
-		) || /(code|cursor|vscode|webstorm|intellij|xcode)/.test(t)
+		) ||
+		/(code|cursor|vscode|webstorm|intellij|xcode)/.test(t)
 	) {
 		return "Editor";
 	}
@@ -111,13 +109,18 @@ export const detectAppCategory = (
 		/(word|excel|powerpoint|onenote|pages|numbers|keynote|preview|acrobat|notion)/.test(
 			a,
 		) ||
-		/(word|excel|powerpoint|pages|numbers|keynote|preview|acrobat|notion)/.test(t)
+		/(word|excel|powerpoint|pages|numbers|keynote|preview|acrobat|notion)/.test(
+			t,
+		)
 	) {
 		return "Docs";
 	}
 
 	// DevTools
-	if (/(postman|insomnia|docker|studio 3t)/.test(a) || /(postman|insomnia)/.test(t)) {
+	if (
+		/(postman|insomnia|docker|studio 3t)/.test(a) ||
+		/(postman|insomnia)/.test(t)
+	) {
 		return "DevTools";
 	}
 
