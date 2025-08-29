@@ -28,7 +28,7 @@ export type AppCategory =
 export const CATEGORY_COLORS: Record<AppCategory, string> = {
 	Browser: "#3B82F6", // blue-500
 	Editor: "#8B5CF6", // violet-500
-	Terminal: "#10B981", // emerald-500
+	Terminal: "#7C3AED", // violet-600
 	Communication: "#F59E0B", // amber-500
 	Design: "#EC4899", // pink-500
 	Media: "#EF4444", // red-500
