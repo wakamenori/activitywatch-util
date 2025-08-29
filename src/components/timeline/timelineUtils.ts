@@ -1,4 +1,4 @@
-import type { TimelineTrack } from "./TimelineTypes";
+import type { TimelineEvent, TimelineTrack } from "./TimelineTypes";
 
 export const getColorForType = (type: string): string => {
 	const colors: Record<string, string> = {
@@ -9,6 +9,132 @@ export const getColorForType = (type: string): string => {
 		"general.stopwatch": "#EC4899",
 	};
 	return colors[type] || "#6B7280";
+};
+
+// App category detection for `currentwindow`
+export type AppCategory =
+	| "Browser"
+	| "Editor"
+	| "Terminal"
+	| "Communication"
+	| "Design"
+	| "Media"
+	| "Docs"
+	| "DevTools"
+	| "File"
+	| "System"
+	| "Other";
+
+const CATEGORY_COLORS: Record<AppCategory, string> = {
+	Browser: "#3B82F6", // blue-500
+	Editor: "#8B5CF6", // violet-500
+	Terminal: "#10B981", // emerald-500
+	Communication: "#F59E0B", // amber-500
+	Design: "#EC4899", // pink-500
+	Media: "#EF4444", // red-500
+	Docs: "#22C55E", // green-500
+	DevTools: "#06B6D4", // cyan-500
+	File: "#6366F1", // indigo-500
+	System: "#64748B", // slate-500
+	Other: "#6B7280", // gray-500
+};
+
+export const detectAppCategory = (
+	app: string,
+	title: string,
+): AppCategory => {
+	const a = app.toLowerCase();
+	const t = title.toLowerCase();
+
+	// Browsers
+	if (
+		/(chrome|arc|safari|firefox|vivaldi|edge|brave)/.test(a) ||
+		/(chrome|arc|safari|firefox|vivaldi|edge|brave)/.test(t)
+	) {
+		return "Browser";
+	}
+
+	// Editors / IDEs
+	if (
+		/(code|cursor|vscode|webstorm|intellij|pycharm|goland|xcode|sublime)/.test(
+			a,
+		) || /(code|cursor|vscode|webstorm|intellij|xcode)/.test(t)
+	) {
+		return "Editor";
+	}
+
+	// Terminals
+	if (
+		/(terminal|iterm|alacritty|wezterm|warp|kitty|hyper)/.test(a) ||
+		/(terminal|iterm|alacritty|wezterm|warp|kitty|hyper)/.test(t)
+	) {
+		return "Terminal";
+	}
+
+	// Communication
+	if (
+		/(slack|discord|teams|zoom|skype|meet|line)/.test(a) ||
+		/(slack|discord|teams|zoom|skype|meet|line)/.test(t)
+	) {
+		return "Communication";
+	}
+
+	// Design
+	if (
+		/(figma|sketch|photoshop|illustrator|xd|affinity)/.test(a) ||
+		/(figma|sketch|photoshop|illustrator|xd|affinity)/.test(t)
+	) {
+		return "Design";
+	}
+
+	// Media
+	if (/spotify|music|vlc|quicktime|itunes/.test(a) || /spotify|music/.test(t)) {
+		return "Media";
+	}
+
+	// Docs / Office
+	if (
+		/(word|excel|powerpoint|onenote|pages|numbers|keynote|preview|acrobat|notion)/.test(
+			a,
+		) ||
+		/(word|excel|powerpoint|pages|numbers|keynote|preview|acrobat|notion)/.test(t)
+	) {
+		return "Docs";
+	}
+
+	// DevTools
+	if (/(postman|insomnia|docker|studio 3t)/.test(a) || /(postman|insomnia)/.test(t)) {
+		return "DevTools";
+	}
+
+	// File manager
+	if (/(finder|explorer)/.test(a) || /(finder|explorer)/.test(t)) {
+		return "File";
+	}
+
+	// System
+	if (/system settings|settings|preferences/.test(t)) {
+		return "System";
+	}
+
+	return "Other";
+};
+
+export const getColorForCategory = (category: AppCategory): string => {
+	return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.Other;
+};
+
+export const getColorForEvent = (
+	trackType: string,
+	event: TimelineEvent,
+): string => {
+	if (trackType === "currentwindow") {
+		const app = (event.data.app as string) || "";
+		const title = (event.data.title as string) || "";
+		const cat = detectAppCategory(app, title);
+		return getColorForCategory(cat);
+	}
+	return getColorForType(trackType);
 };
 
 export const formatTime = (dateString: string) => {

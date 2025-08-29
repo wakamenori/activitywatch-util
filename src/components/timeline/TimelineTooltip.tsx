@@ -1,5 +1,5 @@
 import type { TooltipState } from "./TimelineTypes";
-import { formatDuration, formatTime } from "./timelineUtils";
+import { detectAppCategory, formatDuration, formatTime } from "./timelineUtils";
 
 interface TimelineTooltipProps {
 	tooltip: TooltipState;
@@ -16,6 +16,7 @@ export function TimelineTooltip({
 	const app = (event.data.app as string) || "";
 	const title = (event.data.title as string) || "";
 	const status = (event.data.status as string) || "";
+	const category = app || title ? detectAppCategory(app, title) : null;
 
 	return (
 		<div
@@ -35,6 +36,11 @@ export function TimelineTooltip({
 				{app && (
 					<div>
 						<span className="text-gray-400">アプリ:</span> {app}
+					</div>
+				)}
+				{category && (
+					<div>
+						<span className="text-gray-400">カテゴリ:</span> {category}
 					</div>
 				)}
 				{title && (

@@ -1,5 +1,5 @@
 import type { TimelineEvent, TimelineTrack } from "./TimelineTypes";
-import { getColorForType } from "./timelineUtils";
+import { getColorForEvent } from "./timelineUtils";
 
 interface TimelineTrackProps {
 	track: TimelineTrack;
@@ -41,7 +41,7 @@ export function TimelineTrackRow({
 							style={{
 								left: `${left}%`,
 								width: `${width}%`,
-								backgroundColor: getColorForType(track.type),
+								backgroundColor: getColorForEvent(track.type, event),
 							}}
 							onMouseEnter={(e) => onMouseEnter(event, e)}
 							onMouseLeave={onMouseLeave}
