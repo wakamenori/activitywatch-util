@@ -34,3 +34,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## LLM Provider Selection
+
+The analysis API supports both OpenAI (default) and Google Gemini.
+
+- Endpoint: `POST /api/analyze-activity?range=60m&provider=openai|gemini`
+- Default provider: `openai`
+
+Environment variables:
+
+- OpenAI: follow `@ai-sdk/openai` configuration as in your environment.
+- Gemini: set `GOOGLE_GENERATIVE_AI_API_KEY` to your Google Generative AI API key.
+
+To use Gemini from the UI or API, pass `provider=gemini` in the query string.

@@ -7,19 +7,23 @@ interface ActivityAnalysisProps {
 	timeRange?: string;
 }
 
-export function ActivityAnalysis({ timeRange = '60m' }: ActivityAnalysisProps) {
+export function ActivityAnalysis({ timeRange = "60m" }: ActivityAnalysisProps) {
 	const [lastAnalysis, setLastAnalysis] = useState<Date | null>(null);
 
 	const { complete, completion, isLoading, error } = useCompletion({
-		api: `/api/analyze-activity?range=${timeRange}`,
+		api: `/api/analyze-activity?range=${timeRange}&provider=gemini`,
 	});
 
 	const getTimeRangeLabel = (range: string): string => {
 		switch (range) {
-			case '30m': return '30分';
-			case '60m': return '1時間';  
-			case '120m': return '2時間';
-			default: return '1時間';
+			case "30m":
+				return "30分";
+			case "60m":
+				return "1時間";
+			case "120m":
+				return "2時間";
+			default:
+				return "1時間";
 		}
 	};
 
@@ -174,7 +178,9 @@ export function ActivityAnalysis({ timeRange = '60m' }: ActivityAnalysisProps) {
 							</svg>
 						</div>
 						<p>
-							「活動を分析」ボタンをクリックして、直近{getTimeRangeLabel(timeRange)}の活動パターンのAI分析を開始してください。
+							「活動を分析」ボタンをクリックして、直近
+							{getTimeRangeLabel(timeRange)}
+							の活動パターンのAI分析を開始してください。
 						</p>
 					</div>
 				)}
@@ -183,8 +189,8 @@ export function ActivityAnalysis({ timeRange = '60m' }: ActivityAnalysisProps) {
 			{completion && (
 				<div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 					<p className="text-xs text-gray-500 dark:text-gray-400">
-						💡
-						この分析は直近{getTimeRangeLabel(timeRange)}のActivityWatchデータに基づいています。より正確な分析のため、定期的に実行することをお勧めします。
+						💡 この分析は直近{getTimeRangeLabel(timeRange)}
+						のActivityWatchデータに基づいています。より正確な分析のため、定期的に実行することをお勧めします。
 					</p>
 				</div>
 			)}

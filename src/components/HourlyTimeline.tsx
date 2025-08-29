@@ -38,9 +38,9 @@ interface HourlyTimelineProps {
 	onTimeRangeChange?: (range: string) => void;
 }
 
-export function HourlyTimeline({ 
-	timeRange = '60m', 
-	onTimeRangeChange 
+export function HourlyTimeline({
+	timeRange = "60m",
+	onTimeRangeChange,
 }: HourlyTimelineProps = {}) {
 	const [data, setData] = useState<TimelineData | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -181,10 +181,14 @@ export function HourlyTimeline({
 
 	const getTimeRangeLabel = (range: string): string => {
 		switch (range) {
-			case '30m': return '30分';
-			case '60m': return '1時間';
-			case '120m': return '2時間';
-			default: return '1時間';
+			case "30m":
+				return "30分";
+			case "60m":
+				return "1時間";
+			case "120m":
+				return "2時間";
+			default:
+				return "1時間";
 		}
 	};
 
@@ -205,7 +209,7 @@ export function HourlyTimeline({
 				<div className="flex items-center gap-4">
 					{onTimeRangeChange && (
 						<div className="flex items-center gap-2">
-							<label 
+							<label
 								htmlFor={selectId}
 								className="text-sm text-gray-600 dark:text-gray-400"
 							>

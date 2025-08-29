@@ -1,5 +1,6 @@
+import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamText, type LanguageModel } from "ai";
 import { NextResponse } from "next/server";
 import { activityWatchDB } from "@/lib/database";
 import type { EventModel } from "@/types/activitywatch";
@@ -10,7 +11,7 @@ function formatDuration(seconds: number): string {
 	const totalSeconds = Math.floor(seconds);
 	const minutes = Math.floor(totalSeconds / 60);
 	const secs = totalSeconds % 60;
-	
+
 	if (minutes > 0) {
 		return secs > 0 ? `${minutes}m${secs}s` : `${minutes}m`;
 	}
@@ -18,15 +19,17 @@ function formatDuration(seconds: number): string {
 }
 
 function formatTimestampToJST(date: Date): string {
-	return `${date.toLocaleString("ja-JP", { 
-		timeZone: "Asia/Tokyo",
-		year: "numeric",
-		month: "2-digit", 
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit"
-	}).replace(/\//g, "-")} (JST)`;
+	return `${date
+		.toLocaleString("ja-JP", {
+			timeZone: "Asia/Tokyo",
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+		})
+		.replace(/\//g, "-")} (JST)`;
 }
 
 function escapeXML(str: string): string {
@@ -39,59 +42,63 @@ function escapeXML(str: string): string {
 }
 
 function formatActivityDataAsXML(events: EventModel[]): string {
-	let xml = "<events>\n";
-	
+	const lines: string[] = ["<events>"];
+
 	for (const event of events) {
-		const duration = typeof event.duration === "string" 
-			? parseFloat(event.duration) 
-			: event.duration;
-		
+		const duration =
+			typeof event.duration === "string"
+				? parseFloat(event.duration)
+				: event.duration;
+
 		const timestamp = formatTimestampToJST(event.timestamp);
 		const formattedDuration = formatDuration(duration);
 		const type = event.bucketmodel?.type || "unknown";
-		
-		xml += `  <event>\n`;
-		xml += `    <timestamp>${escapeXML(timestamp)}</timestamp>\n`;
-		xml += `    <duration>${escapeXML(formattedDuration)}</duration>\n`;
-		xml += `    <type>${escapeXML(type)}</type>\n`;
-		xml += `    <data>\n`;
-		
+
+		const parts: string[] = [];
+		parts.push(`<timestamp>${escapeXML(timestamp)}</timestamp>`);
+		parts.push(`<duration>${escapeXML(formattedDuration)}</duration>`);
+		parts.push(`<type>${escapeXML(type)}</type>`);
+
+		// Build data section inline (no newlines) based on type
+		let dataInner = "";
 		try {
 			const data = JSON.parse(event.datastr);
-			
 			if (type === "currentwindow") {
-				if (data.app) xml += `      <app>${escapeXML(data.app)}</app>\n`;
-				if (data.title) xml += `      <title>${escapeXML(data.title)}</title>\n`;
+				if (data.app) dataInner += `<app>${escapeXML(data.app)}</app>`;
+				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;
 			} else if (type === "web.tab.current") {
-				if (data.url) xml += `      <url>${escapeXML(data.url)}</url>\n`;
-				if (data.title) xml += `      <title>${escapeXML(data.title)}</title>\n`;
+				if (data.url) dataInner += `<url>${escapeXML(data.url)}</url>`;
+				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;
 			} else if (type === "afkstatus") {
-				if (data.status) xml += `      <status>${escapeXML(data.status)}</status>\n`;
+				if (data.status) dataInner += `<status>${escapeXML(data.status)}</status>`;
 			}
 		} catch {
 			// Invalid JSON, skip data parsing
 		}
-		
-		xml += `    </data>\n`;
-		xml += `  </event>\n`;
+
+		parts.push(`<data>${dataInner}</data>`);
+
+		// One <event> per line
+		lines.push(`<event>${parts.join("")}</event>`);
 	}
-	
-	xml += "</events>";
-	return xml;
+
+	lines.push("</events>");
+	return lines.join("\n");
 }
 
 export async function POST(request: Request) {
 	try {
 		const { searchParams } = new URL(request.url);
-		const timeRange = searchParams.get('range') || '60m';
-		
+		const timeRange = searchParams.get("range") || "60m";
+		const provider = (searchParams.get("provider") || "openai").toLowerCase();
+
 		// Validate and parse time range
 		const timeRanges = {
-			'30m': 30 * 60 * 1000,
-			'60m': 60 * 60 * 1000,
-			'120m': 120 * 60 * 1000,
+			"30m": 30 * 60 * 1000,
+			"60m": 60 * 60 * 1000,
+			"120m": 120 * 60 * 1000,
 		};
-		
+
 		const rangeMs = timeRanges[timeRange as keyof typeof timeRanges];
 		if (!rangeMs) {
 			return NextResponse.json(
@@ -106,6 +113,11 @@ export async function POST(request: Request) {
 
 		const events = await activityWatchDB.getEventsByTimeRange(startTime, now);
 
+		// Sort events from oldest to newest
+		const sortedEvents = [...events].sort(
+			(a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+		);
+
 		if (events.length === 0) {
 			return NextResponse.json(
 				{ error: "No activity data found for analysis" },
@@ -114,10 +126,11 @@ export async function POST(request: Request) {
 		}
 
 		// Transform data for LLM analysis
-		const activityXML = formatActivityDataAsXML(events);
+		const activityXML = formatActivityDataAsXML(sortedEvents);
 
-		// Create prompt for LLM  
-		const timeRangeLabel = timeRange === '30m' ? '30分' : timeRange === '60m' ? '1時間' : '2時間';
+		// Create prompt for LLM
+		const timeRangeLabel =
+			timeRange === "30m" ? "30分" : timeRange === "60m" ? "1時間" : "2時間";
 		const prompt = `あなたは生産性アドバイザーです。以下のXML形式のアクティビティデータを分析して、日本語で簡潔な要約とアドバイスを提供してください。
 
 データ期間: ${startTime.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} ～ ${now.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} (JST)
@@ -135,9 +148,28 @@ ${activityXML}
 親しみやすく、建設的なトーンでお願いします。`;
 
 		console.log(prompt);
+		// Select model by provider
+		let selectedModel: LanguageModel;
+		if (provider === "gemini") {
+			if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+				return NextResponse.json(
+					{ error: "Missing GOOGLE_GENERATIVE_AI_API_KEY for Gemini provider" },
+					{ status: 500 },
+				);
+			}
+			selectedModel = google("gemini-2.5-pro");
+		} else if (provider === "openai") {
+			selectedModel = openai.responses("gpt-5");
+		} else {
+			return NextResponse.json(
+				{ error: "Invalid provider. Use 'openai' or 'gemini'" },
+				{ status: 400 },
+			);
+		}
+
 		// Create streaming response
 		const result = streamText({
-			model: openai.responses("gpt-5"),
+			model: selectedModel,
 			prompt,
 			temperature: 0.7,
 		});

@@ -5,15 +5,15 @@ import type { EventModel } from "@/types/activitywatch";
 export async function GET(request: Request) {
 	try {
 		const { searchParams } = new URL(request.url);
-		const timeRange = searchParams.get('range') || '60m';
-		
+		const timeRange = searchParams.get("range") || "60m";
+
 		// Validate and parse time range
 		const timeRanges = {
-			'30m': 30 * 60 * 1000,
-			'60m': 60 * 60 * 1000,
-			'120m': 120 * 60 * 1000,
+			"30m": 30 * 60 * 1000,
+			"60m": 60 * 60 * 1000,
+			"120m": 120 * 60 * 1000,
 		};
-		
+
 		const rangeMs = timeRanges[timeRange as keyof typeof timeRanges];
 		if (!rangeMs) {
 			return NextResponse.json(
@@ -113,8 +113,11 @@ function processTimelineData(events: EventModel[]): TimelineTrack[] {
 			displayData = { raw: event.datastr };
 		}
 
-		const duration = typeof event.duration === 'string' ? parseFloat(event.duration) : event.duration;
-		
+		const duration =
+			typeof event.duration === "string"
+				? parseFloat(event.duration)
+				: event.duration;
+
 		const processedEvent: ProcessedTimelineEvent = {
 			id: event.id,
 			start: event.timestamp,
