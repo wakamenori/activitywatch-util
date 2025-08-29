@@ -86,7 +86,7 @@ const hslToHex = (h: number, s: number, l: number) => {
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 // Variant designed to ensure adjacent leaves within a category are distinct
-const variantWithinCategory = (base: string, key: string, indexHint = 0) => {
+const _variantWithinCategory = (base: string, key: string, indexHint = 0) => {
     const hash = hashString(key);
     const { h, s, l } = hexToHsl(base);
     // Hue shift based on sibling index plus small hash jitter
@@ -165,36 +165,45 @@ export function ActivitySunburst({ timeRange }: { timeRange: string }) {
 	};
 
 	// Build unique ids for all nodes so Nivo doesn't see duplicate keys like "Other"
-	const chartRoot = useMemo(() => {
-    const build = (
-        node: SunburstNode,
-        path: string[],
-        depth: number,
-        catName?: string,
-        appName?: string,
-        _siblingIndex?: number,
-        _siblingCount?: number,
-        leafSeq?: { i: number },
-    ): ChartNode => {
-        const id = [...path, node.name].join("|");
-        // Resolve category/app context
-        const nextCat = depth === 0 ? undefined : depth === 1 ? node.name : catName;
-        const nextApp = depth === 2 ? node.name : appName;
-        const base = nextCat
-            ? CATEGORY_COLORS[nextCat as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.Other
-            : CATEGORY_COLORS.Other;
-        let color: string | undefined;
-        const isLeaf = !node.children || node.children.length === 0;
-        if (depth === 0) color = "#E5E7EB";
-        else if (depth === 1) color = base;
-        else if (depth === 2) color = adjustColor(base, 0.15);
-        if (isLeaf) {
-            const key = `${nextCat ?? ""}|${nextApp ?? ""}|${node.name}`;
-            const seq = leafSeq ?? { i: 0 };
-            const index = seq.i++;
-            color = variantWithinCategory(base, key, index);
-        }
-        const nextLeafSeq = depth === 1 ? { i: 0 } : leafSeq; // new counter per category
+    const chartRoot = useMemo(() => {
+        const countLeaves = (n: SunburstNode): number => {
+            if (!n.children || n.children.length === 0) return 1;
+            return n.children.reduce((sum, c) => sum + countLeaves(c), 0);
+        };
+        const build = (
+            node: SunburstNode,
+            path: string[],
+            depth: number,
+            catName?: string,
+            appName?: string,
+            _siblingIndex?: number,
+            _siblingCount?: number,
+            leafSeq?: { i: number; total: number },
+        ): ChartNode => {
+            const id = [...path, node.name].join("|");
+            // Resolve category/app context
+            const nextCat = depth === 0 ? undefined : depth === 1 ? node.name : catName;
+            const nextApp = depth === 2 ? node.name : appName;
+            const base = nextCat
+                ? CATEGORY_COLORS[nextCat as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.Other
+                : CATEGORY_COLORS.Other;
+            let color: string | undefined;
+            const isLeaf = !node.children || node.children.length === 0;
+            if (depth === 0) color = "#E5E7EB";
+            else if (depth === 1) color = base;
+            else if (depth === 2) color = adjustColor(base, 0.15);
+            if (isLeaf) {
+            const seq = leafSeq ?? { i: 0, total: 1 };
+            const pos = seq.total > 1 ? seq.i / (seq.total - 1) : 0; // 0..1 along category
+            seq.i++;
+            const { h, s, l } = hexToHsl(base);
+            const hueSpread = 64; // degrees span within a category
+            const h2 = (h - hueSpread / 2 + pos * hueSpread + 360) % 360;
+            const l2 = clamp(l + (pos - 0.5) * 12, 28, 82);
+            const s2 = clamp(s + Math.cos(pos * Math.PI * 2) * 6, 40, 95);
+            color = hslToHex(h2, s2, l2);
+            }
+        const nextLeafSeq = depth === 1 ? { i: 0, total: countLeaves(node) } : leafSeq; // per-category sequence
         const children = node.children?.map((c, idx, arr) =>
             build(
                 c,
@@ -208,9 +217,9 @@ export function ActivitySunburst({ timeRange }: { timeRange: string }) {
             ),
         );
         return { ...node, id, color, children } as ChartNode;
-    };
-    return data?.root ? build(data.root, [], 0, undefined, undefined, 0, 0, undefined) : null;
-}, [data]);
+        };
+        return data?.root ? build(data.root, [], 0, undefined, undefined, 0, 0, undefined) : null;
+    }, [data]);
 
 
 	if (loading) {
@@ -276,9 +285,9 @@ export function ActivitySunburst({ timeRange }: { timeRange: string }) {
 							data: SunburstNode;
 							depth?: number;
 						};
-						const percent = datum.percentage || 0;
+						const percent = datum.percentage || 0; // Nivo gives 0..100
 						const depth = datum.depth ?? 0;
-						if (percent > 0.12 && depth <= 2 && datum.data.name !== "Other") {
+						if (percent > 12 && depth <= 2 && datum.data.name !== "Other") {
 							return truncate(datum.data.name, 14);
 						}
 						return "";
@@ -308,7 +317,7 @@ export function ActivitySunburst({ timeRange }: { timeRange: string }) {
 								<div className="font-medium" style={{ color: n.color }}>
 									{path || n.id}
 								</div>
-								<div className="text-gray-600 dark:text-gray-300">{formatTotal(n.value || 0)}（{Math.round((n.percentage || 0) * 100)}%）</div>
+								<div className="text-gray-600 dark:text-gray-300">{formatTotal(n.value || 0)}（{Math.round(n.percentage || 0)}%）</div>
 								<div className="text-[10px] text-gray-400">{n.depth === 1 ? "カテゴリ" : n.depth === 2 ? "アプリ" : "タイトル"}</div>
 							</div>
 						);
