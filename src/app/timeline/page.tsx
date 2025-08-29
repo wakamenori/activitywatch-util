@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ActivityAnalysis } from "@/components/ActivityAnalysis";
+import { ActivitySunburst } from "@/components/ActivitySunburst";
 import { HourlyTimeline } from "@/components/HourlyTimeline";
 
 export default function TimelinePage() {
@@ -10,6 +11,7 @@ export default function TimelinePage() {
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
 			<div className="container mx-auto px-4 py-8">
+				<ActivitySunburst timeRange={timeRange} />
 				<HourlyTimeline
 					timeRange={timeRange}
 					onTimeRangeChange={setTimeRange}

@@ -135,7 +135,6 @@ export function HourlyTimeline({
 			{/* Legend for currentwindow categories */}
 			<TimelineLegend items={legendItems} />
 
-
 			<div className="relative" ref={containerRef}>
 				<div className="space-y-4">
 					{sortTimelineTracks(data.timeline).map((track) => (
@@ -151,7 +150,6 @@ export function HourlyTimeline({
 				</div>
 				{renderTooltip()}
 			</div>
-
 		</div>
 	);
 }
