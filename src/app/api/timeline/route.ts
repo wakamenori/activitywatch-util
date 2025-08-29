@@ -2,13 +2,31 @@ import { NextResponse } from "next/server";
 import { activityWatchDB } from "@/lib/database";
 import type { EventModel } from "@/types/activitywatch";
 
-export async function GET() {
+export async function GET(request: Request) {
 	try {
-		// Get events from last 1 hour
-		const now = new Date();
-		const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+		const { searchParams } = new URL(request.url);
+		const timeRange = searchParams.get('range') || '60m';
+		
+		// Validate and parse time range
+		const timeRanges = {
+			'30m': 30 * 60 * 1000,
+			'60m': 60 * 60 * 1000,
+			'120m': 120 * 60 * 1000,
+		};
+		
+		const rangeMs = timeRanges[timeRange as keyof typeof timeRanges];
+		if (!rangeMs) {
+			return NextResponse.json(
+				{ error: "Invalid time range. Use 30m, 60m, or 120m" },
+				{ status: 400 },
+			);
+		}
 
-		const events = await activityWatchDB.getEventsByTimeRange(oneHourAgo, now);
+		// Get events from specified time range
+		const now = new Date();
+		const startTime = new Date(now.getTime() - rangeMs);
+
+		const events = await activityWatchDB.getEventsByTimeRange(startTime, now);
 
 		// Sort events by timestamp
 		events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -18,8 +36,9 @@ export async function GET() {
 
 		return NextResponse.json({
 			timeline,
-			startTime: oneHourAgo,
+			startTime,
 			endTime: now,
+			timeRange,
 			totalEvents: events.length,
 		});
 	} catch (error) {

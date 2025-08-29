@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 interface TimelineEvent {
 	id: number;
@@ -22,6 +22,7 @@ interface TimelineData {
 	timeline: TimelineTrack[];
 	startTime: string;
 	endTime: string;
+	timeRange: string;
 	totalEvents: number;
 }
 
@@ -32,7 +33,15 @@ interface TooltipState {
 	event: TimelineEvent | null;
 }
 
-export function HourlyTimeline() {
+interface HourlyTimelineProps {
+	timeRange?: string;
+	onTimeRangeChange?: (range: string) => void;
+}
+
+export function HourlyTimeline({ 
+	timeRange = '60m', 
+	onTimeRangeChange 
+}: HourlyTimelineProps = {}) {
 	const [data, setData] = useState<TimelineData | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -43,10 +52,11 @@ export function HourlyTimeline() {
 		event: null,
 	});
 	const containerRef = useRef<HTMLDivElement>(null);
+	const selectId = useId();
 
 	const fetchTimeline = useCallback(async () => {
 		try {
-			const response = await fetch("/api/timeline");
+			const response = await fetch(`/api/timeline?range=${timeRange}`);
 			const json = await response.json();
 			setData(json);
 			setLastUpdate(new Date());
@@ -55,7 +65,7 @@ export function HourlyTimeline() {
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [timeRange]);
 
 	useEffect(() => {
 		fetchTimeline();
@@ -169,6 +179,15 @@ export function HourlyTimeline() {
 	const endTime = new Date(data.endTime);
 	const totalDuration = endTime.getTime() - startTime.getTime();
 
+	const getTimeRangeLabel = (range: string): string => {
+		switch (range) {
+			case '30m': return '30分';
+			case '60m': return '1時間';
+			case '120m': return '2時間';
+			default: return '1時間';
+		}
+	};
+
 	return (
 		<div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
 			<div className="flex justify-between items-center mb-4">
@@ -180,11 +199,33 @@ export function HourlyTimeline() {
 						← ダッシュボードに戻る
 					</Link>
 					<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-						直近1時間のタイムライン
+						直近{getTimeRangeLabel(timeRange)}のタイムライン
 					</h2>
 				</div>
-				<div className="text-sm text-gray-500 dark:text-gray-400">
-					最終更新: {lastUpdate.toLocaleTimeString("ja-JP")}
+				<div className="flex items-center gap-4">
+					{onTimeRangeChange && (
+						<div className="flex items-center gap-2">
+							<label 
+								htmlFor={selectId}
+								className="text-sm text-gray-600 dark:text-gray-400"
+							>
+								期間:
+							</label>
+							<select
+								id={selectId}
+								value={timeRange}
+								onChange={(e) => onTimeRangeChange(e.target.value)}
+								className="text-sm border rounded px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+							>
+								<option value="30m">30分</option>
+								<option value="60m">1時間</option>
+								<option value="120m">2時間</option>
+							</select>
+						</div>
+					)}
+					<div className="text-sm text-gray-500 dark:text-gray-400">
+						最終更新: {lastUpdate.toLocaleTimeString("ja-JP")}
+					</div>
 				</div>
 			</div>
 
@@ -259,7 +300,7 @@ export function HourlyTimeline() {
 					<div>
 						<div className="text-gray-500 dark:text-gray-400">記録期間</div>
 						<div className="text-lg font-semibold text-gray-900 dark:text-white">
-							60分
+							{getTimeRangeLabel(timeRange)}
 						</div>
 					</div>
 					<div>
