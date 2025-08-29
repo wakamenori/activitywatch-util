@@ -32,7 +32,7 @@ export const CATEGORY_COLORS: Record<AppCategory, string> = {
 	Communication: "#F59E0B", // amber-500
 	Design: "#EC4899", // pink-500
 	Media: "#EF4444", // red-500
-	Docs: "#22C55E", // green-500
+	Docs: "#84CC16", // lime-500
 	DevTools: "#06B6D4", // cyan-500
 	File: "#6366F1", // indigo-500
 	System: "#64748B", // slate-500
