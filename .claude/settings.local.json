@@ -15,7 +15,8 @@
       "Bash(pnpm remove:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "mcp__serena__get_symbols_overview"
     ],
     "deny": [],
     "ask": []
