@@ -1,4 +1,5 @@
 import type { EventModel } from "@/types/activitywatch";
+import { extractDomainFromUrl, extractEncodedUrlFromTitle } from "./browser";
 import {
 	basenameMaybe,
 	escapeXML,
@@ -37,7 +38,19 @@ export function formatActivityDataAsXML(events: EventModel[]): string {
 			const data = JSON.parse(event.datastr);
 			if (type === "currentwindow") {
 				if (data.app) dataInner += `<app>${escapeXML(data.app)}</app>`;
-				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;
+				// Try to extract encoded URL appended in parentheses at the end of title
+				if (data.title) {
+					const { url: embedded, cleanTitle } = extractEncodedUrlFromTitle(
+						String(data.title),
+					);
+					const titleOut = embedded ? cleanTitle : String(data.title);
+					dataInner += `<title>${escapeXML(titleOut)}</title>`;
+					if (embedded) {
+						dataInner += `<url>${escapeXML(embedded)}</url>`;
+						const dom = extractDomainFromUrl(embedded);
+						if (dom) dataInner += `<domain>${escapeXML(dom)}</domain>`;
+					}
+				}
 			} else if (type === "web.tab.current") {
 				if (data.url) dataInner += `<url>${escapeXML(data.url)}</url>`;
 				if (data.title) dataInner += `<title>${escapeXML(data.title)}</title>`;

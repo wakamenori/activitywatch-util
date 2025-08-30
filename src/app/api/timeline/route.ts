@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+	extractDomainFromUrl,
+	extractEncodedUrlFromTitle,
+} from "@/lib/analyze-activity/browser";
 import { activityWatchDB } from "@/lib/database";
 import type { EventModel } from "@/types/activitywatch";
 
@@ -83,10 +87,30 @@ function processTimelineData(events: EventModel[]): TimelineTrack[] {
 
 			switch (bucketType) {
 				case "currentwindow":
-					displayData = {
-						app: data.app,
-						title: data.title,
-					};
+					{
+						// Parse encoded URL appended in parentheses at end of title, if present
+						let titleOut = data.title as string | undefined;
+						let urlOut: string | undefined;
+						let domainOut: string | undefined;
+
+						if (typeof data.title === "string") {
+							const { url, cleanTitle } = extractEncodedUrlFromTitle(
+								data.title,
+							);
+							if (url) {
+								urlOut = url;
+								domainOut = extractDomainFromUrl(url) || undefined;
+								titleOut = cleanTitle;
+							}
+						}
+
+						displayData = {
+							app: data.app,
+							title: titleOut,
+							url: urlOut,
+							domain: domainOut,
+						};
+					}
 					break;
 				case "web.tab.current":
 					displayData = {

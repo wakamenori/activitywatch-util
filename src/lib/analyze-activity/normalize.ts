@@ -1,4 +1,5 @@
 import type { EventModel } from "@/types/activitywatch";
+import { extractDomainFromUrl, extractEncodedUrlFromTitle } from "./browser";
 
 export type Category =
 	| "coding"
@@ -37,13 +38,8 @@ export function parseJsonSafe(input: string): Record<string, unknown> | null {
 
 export function extractDomain(url?: string | null): string | null {
 	if (!url) return null;
-	try {
-		const u = new URL(url);
-		return u.hostname.toLowerCase();
-	} catch {
-		const m = url.match(/^https?:\/\/([^/:?#]+)/i);
-		return m ? m[1].toLowerCase() : null;
-	}
+	// Prefer shared helper (strict URL parsing)
+	return extractDomainFromUrl(url);
 }
 
 export function parseCursorTitle(title?: string | null): {
@@ -128,7 +124,19 @@ export function normalizeEvent(e: EventModel): NormalizedEvent | null {
 	const data = parseJsonSafe(e.datastr) || {};
 	const app = typeof data.app === "string" ? (data.app as string) : null;
 	const title = typeof data.title === "string" ? (data.title as string) : null;
-	const url = typeof data.url === "string" ? (data.url as string) : null;
+	let url = typeof data.url === "string" ? (data.url as string) : null;
+
+	// If currentwindow title embeds an encoded URL like "... (https%3A%2F%2F...)"
+	// extract and use it as canonical URL, and keep a cleaned title for readability
+	let effectiveTitle = title;
+	if (!url && type === "currentwindow" && title) {
+		const { url: embeddedUrl, cleanTitle } = extractEncodedUrlFromTitle(title);
+		if (embeddedUrl) {
+			url = embeddedUrl;
+			effectiveTitle = cleanTitle;
+		}
+	}
+
 	const domain = extractDomain(url);
 
 	let project: string | null = null;
@@ -157,7 +165,7 @@ export function normalizeEvent(e: EventModel): NormalizedEvent | null {
 		}
 	}
 
-	const category = categorizeFrom(type, app, domain, title);
+	const category = categorizeFrom(type, app, domain, effectiveTitle);
 
 	return {
 		start,
@@ -167,7 +175,7 @@ export function normalizeEvent(e: EventModel): NormalizedEvent | null {
 		app,
 		url,
 		domain,
-		title,
+		title: effectiveTitle,
 		project,
 		file,
 		language,
