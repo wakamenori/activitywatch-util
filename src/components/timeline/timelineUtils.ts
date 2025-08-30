@@ -106,10 +106,10 @@ export const detectAppCategory = (app: string, title: string): AppCategory => {
 
 	// Docs / Office
 	if (
-		/(word|excel|powerpoint|onenote|pages|numbers|keynote|preview|acrobat|notion)/.test(
+		/(word|excel|powerpoint|onenote|pages|numbers|keynote|preview|acrobat|notion|obsidian)/.test(
 			a,
 		) ||
-		/(word|excel|powerpoint|pages|numbers|keynote|preview|acrobat|notion)/.test(
+		/(word|excel|powerpoint|onenote|pages|numbers|keynote|preview|acrobat|notion|obsidian)/.test(
 			t,
 		)
 	) {
