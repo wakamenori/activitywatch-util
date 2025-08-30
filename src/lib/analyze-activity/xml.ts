@@ -6,6 +6,7 @@ import {
 	formatDuration,
 	formatTimestampToJST,
 } from "./format";
+import type { FileSnapshot } from "./git";
 import type { Stats } from "./stats";
 import { formatKVList, topN } from "./stats";
 
@@ -57,6 +58,16 @@ export function formatActivityDataAsXML(events: EventModel[]): string {
 				}
 				if (data.branch)
 					dataInner += `<branch>${escapeXML(String(data.branch))}</branch>`;
+			} else if (type === "git.commit") {
+				// Commit event from git collector
+				if ((data as Record<string, unknown>).repo)
+					dataInner += `<repo>${escapeXML(String((data as Record<string, unknown>).repo))}</repo>`;
+				if ((data as Record<string, unknown>).subject)
+					dataInner += `<subject>${escapeXML(String((data as Record<string, unknown>).subject))}</subject>`;
+				if ((data as Record<string, unknown>).path)
+					dataInner += `<path>${escapeXML(String((data as Record<string, unknown>).path))}</path>`;
+				if ((data as Record<string, unknown>).diff)
+					dataInner += `<diff>${escapeXML(String((data as Record<string, unknown>).diff))}</diff>`;
 			}
 		} catch {
 			// Invalid JSON, skip data parsing
@@ -120,5 +131,20 @@ export function buildStatsSummaryXML(stats: Stats): string {
 			`<localDev>${escapeXML(formatDuration(stats.localDevSeconds))}</localDev>`,
 		);
 	lines.push("</stats>");
+	return lines.join("\n");
+}
+
+export function formatFileSnapshotsAsXML(
+	snapshots: FileSnapshot[],
+	which: "before" | "after",
+): string {
+	const lines: string[] = [`<fileSnapshots kind="${which}">`];
+	for (const s of snapshots) {
+		const content = which === "before" ? s.before : s.after;
+		lines.push(
+			`<file repo="${escapeXML(s.repoName)}" path="${escapeXML(s.path)}"><content>${escapeXML(content)}</content></file>`,
+		);
+	}
+	lines.push("</fileSnapshots>");
 	return lines.join("\n");
 }

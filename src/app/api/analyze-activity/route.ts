@@ -1,12 +1,18 @@
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { persistXML } from "@/lib/analyze-activity/files";
+import {
+	buildFileSnapshotsFromCommits,
+	buildGitCommitEvents,
+	collectGitCommitsInRange,
+} from "@/lib/analyze-activity/git";
 import { type Provider, selectModel } from "@/lib/analyze-activity/llm";
 import { buildHumanSummary, buildPrompt } from "@/lib/analyze-activity/prompt";
 import { computeStats } from "@/lib/analyze-activity/stats";
 import {
 	buildStatsSummaryXML,
 	formatActivityDataAsXML,
+	formatFileSnapshotsAsXML,
 } from "@/lib/analyze-activity/xml";
 import { activityWatchDB } from "@/lib/database";
 
@@ -43,6 +49,9 @@ export async function POST(request: Request) {
 		const startTime = new Date(now.getTime() - rangeMs);
 
 		const events = await activityWatchDB.getEventsByTimeRange(startTime, now);
+		const gitCommits = await collectGitCommitsInRange(startTime, now);
+		const gitEvents = buildGitCommitEvents(gitCommits);
+		console.dir(gitEvents, { depth: null });
 
 		// Sort events from oldest to newest
 		const sortedEvents = [...events].sort(
@@ -65,10 +74,19 @@ export async function POST(request: Request) {
 			return Number.isFinite(d) && d > 0;
 		});
 
-		// Compute stats and build XML for LLM
+		// Compute stats using only ActivityWatch events to avoid skew
 		const stats = computeStats(nonZeroEvents, rangeMs);
 		const statsXML = buildStatsSummaryXML(stats);
-		const activityXML = `${statsXML}\n${formatActivityDataAsXML(nonZeroEvents)}`;
+		// Merge commit events (Option 2: same <events> with type="git.commit")
+		const mergedEvents = [...nonZeroEvents, ...gitEvents].sort(
+			(a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+		);
+		// Build file snapshots and arrange order: before -> events -> after
+		const snapshots = await buildFileSnapshotsFromCommits(gitCommits);
+		const beforeXML = formatFileSnapshotsAsXML(snapshots, "before");
+		const eventsXML = formatActivityDataAsXML(mergedEvents);
+		const afterXML = formatFileSnapshotsAsXML(snapshots, "after");
+		const activityXML = `${statsXML}\n${beforeXML}\n${eventsXML}\n${afterXML}`;
 
 		// Persist XML to xml/<timestamp>.xml for inspection
 		await persistXML(activityXML);

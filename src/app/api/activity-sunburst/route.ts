@@ -95,8 +95,8 @@ export async function GET(request: Request) {
 
 		// Build sunburst structure
 		// Limits chosen to keep the chart legible
-        const TITLE_LIMIT = 4;
-        const APP_LIMIT = 6;
+		const TITLE_LIMIT = 4;
+		const APP_LIMIT = 6;
 
 		const root: SunburstNode = { name: "Activity", children: [] };
 		for (const [category, apps] of agg.entries()) {

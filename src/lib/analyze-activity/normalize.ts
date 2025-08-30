@@ -98,6 +98,7 @@ export function categorizeFrom(
 		return "browsing";
 	}
 	if (type === "afkstatus") return "afk";
+	if (type === "git.commit") return "coding";
 	if (type === "currentwindow") {
 		if (appL.includes("slack")) return "communication";
 		if (appL.includes("iterm") || appL.includes("terminal")) return "terminal";
