@@ -53,3 +53,29 @@ ${activityXML}
 時間は既にJST形式で表示されており、durationは人間が読みやすい形式（例：10m12s）で表示されています。
 親しみやすく、建設的なトーンでお願いします。`;
 }
+
+export function buildCalendarObjectPrompt(params: {
+	start: Date;
+	end: Date;
+	timeRangeLabel: string;
+	humanSummary: string;
+	activityXML: string;
+}): string {
+	const { start, end, timeRangeLabel, humanSummary, activityXML } = params;
+	return `あなたは秘書アシスタントです。以下のデータから、
+1) その区間を端的に表す短いタイトル（日本語、30文字以内、絵文字・記号は使わない）
+2) 活動の要約（日本語、200〜400文字、具体的に）
+3) 箇条書き（日本語、3〜6項目、各30〜60文字、具体的に）
+を作成してください。タイトルは簡潔に、要約は読みやすく、箇条書きは実態を端的に表してください。
+
+出力は構造化生成を行います（schemaは title:string, summary:string, bullets:string[]）。
+
+データ期間: ${start.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} ～ ${end.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })} (JST)
+時間範囲: ${timeRangeLabel}
+
+統計サマリ:
+${humanSummary}
+
+アクティビティデータ（XML形式）:
+${activityXML}`;
+}
