@@ -70,3 +70,12 @@ activitywatch-util/
 - Summaries should mention remaining risks or suggested follow-up actions when relevant.
 
 Keep this document current whenever agent behavior, tooling, or repository conventions change.
+
+## Range Analysis Scheduler
+
+- **Scripts**: One-off runs use `scripts/run-range-analysis.ts` via `pnpm run analyze:range`. The recurring scheduler lives in `scripts/run-range-analysis-scheduler.ts` and is exposed as `pnpm run analyze:range:scheduler`.
+- **Interval & window**: The scheduler always processes 30-minute windows aligned to clock boundaries (xx:00 and xx:30). It waits for the next boundary at startup, then repeats every 30 minutes, skipping overlaps if a previous run is still in progress.
+- **LaunchAgent setup**: macOS auto-start is handled by `~/Library/Scripts/run-range-analysis-scheduler.sh` (Volta `pnpm` wrapper) and `~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`. Keep `PATH` entries intact so `pnpm`/`tsx` resolve.
+- **Logs**: Scheduler stdout/stderr stream to `~/Library/Logs/run-range-analysis-scheduler.log` and `~/Library/Logs/run-range-analysis-scheduler.error.log`. Use `tail -f` to monitor, or clear with `: >` when needed.
+- **Refreshing after changes**: After modifying scheduler code, rerun `pnpm install` if dependencies changed, then execute `launchctl kickstart -k gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` to reload the agent. Use `launchctl print gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` to verify `state = running`.
+- **Disable/re-enable**: Stop with `launchctl bootout gui/$(id -u)/com.matsukokuumahikari.activitywatch.range`; restart with `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`.

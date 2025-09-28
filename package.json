@@ -9,7 +9,9 @@
     "format": "biome check --write .",
     "format:unsafe": "biome check --write --unsafe .",
     "lint": "biome lint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "analyze:range": "tsx scripts/run-range-analysis.ts",
+    "analyze:range:scheduler": "tsx scripts/run-range-analysis-scheduler.ts"
   },
   "dependencies": {
     "googleapis": "^140.0.1",
