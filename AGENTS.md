@@ -1,129 +1,72 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This document tracks the guidance each automation agent should follow when working in this repository. Keep it synchronized with the companion agent-specific guides.
 
-## Repository Overview
+## Repository Snapshot
 
-ActivityWatch utility application built with Next.js 15, React 19, and TypeScript. Uses App Router for routing and Biome for code formatting and linting.
-
-## Architecture
-
-### Tech Stack
-
-- **Framework**: Next.js 15.5.0 with Turbopack
-- **UI Library**: React 19.1.0
-- **Language**: TypeScript 5
-- **Styling**: Tailwind CSS 4
-- **Database**: better-sqlite3 12.2.0 (READ-ONLY access to ActivityWatch SQLite database)
-- **Code Quality**: Biome 2.2.0 (formatter and linter)
-- **Package Manager**: pnpm
-
-### Project Structure
+- ActivityWatch utility built with Next.js 15.5.0 (Turbopack) and React 19.1.0
+- TypeScript 5 with Tailwind CSS 4 for styling
+- better-sqlite3 12.2.0 provides **read-only** access to the ActivityWatch SQLite database
+- Biome 2.2.0 handles formatting and linting; package manager is pnpm
+- App Router lives under `src/`; supporting libs in `src/lib/`; types in `src/types/`
 
 ```
 activitywatch-util/
 ├── src/
-│   ├── app/           # Next.js App Router pages
-│   ├── components/    # React components
-│   ├── lib/           # Utility functions and database access
-│   │   └── database.ts # better-sqlite3 database connection
-│   └── types/         # TypeScript type definitions
-│       └── activitywatch.ts # ActivityWatch data models
-├── public/            # Static assets
-├── biome.json         # Biome configuration
-├── next.config.ts     # Next.js configuration
-├── tsconfig.json      # TypeScript configuration
-└── package.json       # Dependencies and scripts
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   │   └── database.ts
+│   └── types/
+│       └── activitywatch.ts
+├── public/
+├── biome.json
+├── next.config.ts
+├── tsconfig.json
+└── package.json
 ```
 
-## Development Workflow
+### Common Operational Expectations
 
-### Available Scripts
+- Do not write to the ActivityWatch database; connections must remain read-only.
+- Run `pnpm run format`, `pnpm run lint`, and `pnpm run typecheck` before committing substantial changes.
+- Follow App Router conventions and keep all application code inside `src/`.
+- Prefer functional React components with TypeScript annotations.
 
-```bash
-pnpm run dev          # Start development server with Turbopack
-pnpm run build        # Build for production with Turbopack
-pnpm run start        # Start production server
-pnpm run format       # Format code with Biome
-pnpm run format:unsafe # Format with unsafe fixes
-pnpm run lint         # Run Biome linter
-pnpm run typecheck    # Type check with TypeScript
-```
+## Agent Directory
 
-### Code Style
+- **Claude Code**: See `CLAUDE.md` for Claude-specific instructions.
+- **ChatGPT (Codex GPT-5)**: Active in the Codex CLI; follow the operating notes below.
 
-- **Indentation**: Tabs (configured in Biome)
-- **Quotes**: Double quotes for strings
-- **Formatting**: Biome handles all formatting automatically
-- **Linting**: Biome with recommended rules enabled
+## ChatGPT (Codex GPT-5) Operating Notes
 
-## Important Configuration
+### Command Execution
 
-### Biome Configuration
+- All shell calls should use `shell(["bash", "-lc", ...], workdir=...)`; avoid `cd` by setting `workdir` explicitly.
+- Prefer `rg`/`rg --files` for searches; fall back only if unavailable.
+- Honor the current sandbox (`workspace-write`) and restricted network access; request escalation only when the task truly requires it.
 
-- Uses Biome 2.2.0 for both formatting and linting
-- Git integration enabled with `.gitignore` respect
-- Excludes: `node_modules`, `.next`, `out`, `build`, `coverage`
-- Includes all TypeScript, JavaScript, and JSX/TSX files
+### Editing & Style Constraints
 
-### Next.js Configuration
+- Default to ASCII; introduce other characters only if already present and necessary.
+- Add concise comments only when they clarify non-obvious logic.
+- Never revert or overwrite unrelated user changes; if unexpected edits appear, pause and ask for guidance.
 
-- Turbopack enabled for faster builds
-- App Router architecture
-- Source code in `src/` directory
+### Planning Guidance
 
-## Development Guidelines
+- Use the planning tool for multi-step or non-trivial tasks; skip it for the simplest ~25% of tasks.
+- Plans must contain at least two steps and be updated after completing a planned step.
 
-1. **Before committing**: Always run `pnpm run format` and `pnpm run lint`
-2. **Type safety**: Run `pnpm run typecheck` to ensure no TypeScript errors
-3. **File organization**: Place all application code in the `src/` directory
-4. **Components**: Use functional components with TypeScript
-5. **Routing**: Use Next.js App Router conventions in `src/app/`
+### Approvals & Sandbox Etiquette
 
-## ActivityWatch Integration
+- Approval policy is `on-request`: ask for escalated permissions when writes/tests require leaving the sandbox, performing destructive actions, or accessing the network.
+- Provide a one-sentence justification whenever requesting escalated commands.
 
-This utility is designed to work with ActivityWatch data. It connects to the local ActivityWatch SQLite database in **READ-ONLY mode** to prevent any accidental data corruption.
+### Communication & Reporting
 
-### Database Access
+- Responses are plain text with lightweight structure; be concise and collaborative.
+- Reference files with inline code paths (e.g., `src/lib/database.ts:42`).
+- Lead code-change reports with the main outcome, then note per-file context.
+- Summaries should mention remaining risks or suggested follow-up actions when relevant.
 
-**IMPORTANT: The database connection is READ-ONLY. Never attempt to modify the ActivityWatch database.**
-
-- **Database Location**: `~/Library/Application Support/activitywatch/aw-server/peewee-sqlite.v2.db`
-- **Access Method**: better-sqlite3 with read-only connection mode in `src/lib/database.ts`
-- **Available Data**:
-  - `bucketmodel`: Activity tracking buckets (different trackers like window, AFK, etc.)
-  - `eventmodel`: Individual activity events with timestamps and duration
-
-### Safe Database Operations
-
-Use the `activityWatchDB` helper from `src/lib/database.ts`:
-
-- `getBuckets()`: Get all activity buckets
-- `getBucket(id)`: Get a specific bucket
-- `getEvents(bucketId?, limit)`: Get recent events
-- `getEventsByTimeRange(start, end, bucketId?)`: Get events in a time range
-
-### Type Safety
-
-TypeScript interfaces are defined in `src/types/activitywatch.ts`:
-
-- `BucketModel`: Represents an ActivityWatch bucket (tracker)
-- `EventModel`: Represents an activity event with duration and metadata
-- Full type safety for all database operations
-
-### Why better-sqlite3?
-
-We use better-sqlite3 instead of Prisma because:
-
-- **Encoding Issues**: ActivityWatch database may contain non-UTF-8 encoded data that Prisma cannot handle
-- **True Read-Only**: Enforces read-only access with `readonly: true` option
-- **Better Control**: Direct control over character encoding and data conversion
-- **Performance**: Faster and more lightweight than Prisma ORM
-- **Reliability**: Avoids "Conversion failed: input contains invalid characters" errors
-
-### Future Features
-
-- Data visualization components
-- Activity analysis tools
-- Export functionality
-- Custom reporting features
+Keep this document current whenever agent behavior, tooling, or repository conventions change.
