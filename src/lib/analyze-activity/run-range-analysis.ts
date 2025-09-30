@@ -12,6 +12,7 @@ import {
 	buildHumanSummary,
 	buildPrompt,
 } from "@/lib/analyze-activity/prompt";
+import { formatRangeLabel } from "@/lib/analyze-activity/range";
 import { computeStats } from "@/lib/analyze-activity/stats";
 import {
 	buildStatsSummaryXML,
@@ -20,7 +21,6 @@ import {
 } from "@/lib/analyze-activity/xml";
 import { activityWatchDB } from "@/lib/database";
 import { createCalendarEventIfConfigured } from "@/lib/google/calendar";
-import { formatRangeLabel } from "@/lib/analyze-activity/range";
 
 const calendarSchema = z.object({
 	title: z.string(),

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { type Provider } from "@/lib/analyze-activity/llm";
+import type { Provider } from "@/lib/analyze-activity/llm";
 import { parseDateInput } from "@/lib/analyze-activity/range";
 import {
 	RangeAnalysisError,
@@ -74,7 +74,10 @@ export async function POST(request: Request) {
 	} catch (error) {
 		if (error instanceof RangeAnalysisError) {
 			console.error("Error in analyze-activity/by-range:", error.message);
-			return NextResponse.json({ error: error.message }, { status: error.status });
+			return NextResponse.json(
+				{ error: error.message },
+				{ status: error.status },
+			);
 		}
 		console.error("Error in analyze-activity/by-range:", error);
 		return NextResponse.json(

@@ -1,7 +1,9 @@
-import { parseArgs } from "node:util";
+import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Provider } from "@/lib/analyze-activity/llm";
+import { parseArgs } from "node:util";
+import { config as loadEnv } from "dotenv";
+import type { Provider } from "@/lib/analyze-activity/llm";
 import { parseDateInput } from "@/lib/analyze-activity/range";
 import {
 	RangeAnalysisError,
@@ -12,15 +14,42 @@ const __filename = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(__filename), "..");
 process.chdir(projectRoot);
 
-async function main() {
-	const dotenvSpecifier: string = "dotenv/config";
-	try {
-		await import(dotenvSpecifier);
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "MODULE_NOT_FOUND") {
-			console.warn("Failed to load dotenv/config:", error);
+function loadEnvironment() {
+	const envLocalPath = resolve(projectRoot, ".env.local");
+	const envPath = resolve(projectRoot, ".env");
+	let loaded = false;
+
+	if (existsSync(envLocalPath)) {
+		const result = loadEnv({ path: envLocalPath, override: true });
+		if (result.error) {
+			console.warn("Failed to load .env.local:", result.error);
+		} else {
+			loaded = true;
 		}
 	}
+
+	if (!loaded && existsSync(envPath)) {
+		const result = loadEnv({ path: envPath, override: false });
+		if (result.error) {
+			console.warn("Failed to load .env:", result.error);
+		} else {
+			loaded = true;
+		}
+	}
+
+	if (!loaded) {
+		const result = loadEnv();
+		if (result.error) {
+			console.warn(
+				"Failed to load environment variables via dotenv:",
+				result.error,
+			);
+		}
+	}
+}
+
+async function main() {
+	loadEnvironment();
 
 	const { values } = parseArgs({
 		options: {
@@ -41,7 +70,9 @@ async function main() {
 	const now = new Date();
 	const end = parseDateInput(values.end) ?? now;
 
-	const minutesInput = values.minutes ? Number.parseInt(values.minutes, 10) : NaN;
+	const minutesInput = values.minutes
+		? Number.parseInt(values.minutes, 10)
+		: NaN;
 	const hoursInput = values.hours ? Number.parseInt(values.hours, 10) : NaN;
 	const lookbackMinutes = Number.isFinite(minutesInput)
 		? minutesInput
@@ -78,7 +109,9 @@ async function main() {
 	}
 
 	console.log("=== run-range-analysis ===");
-	console.log(`range: ${result.range.start} -> ${result.range.end} (${result.range.label})`);
+	console.log(
+		`range: ${result.range.start} -> ${result.range.end} (${result.range.label})`,
+	);
 	console.log(`provider: ${result.provider}`);
 	console.log(
 		`counts: activity=${result.counts.activityEvents}, commits=${result.counts.gitCommits}`,

@@ -48,3 +48,95 @@ Environment variables:
 - Gemini: set `GOOGLE_GENERATIVE_AI_API_KEY` to your Google Generative AI API key.
 
 To use Gemini from the UI or API, pass `provider=gemini` in the query string.
+
+## Range Analysis Scheduler & LaunchAgent
+
+This project ships with a CLI scheduler that executes `runRangeAnalysis` every 30 minutes, even when the Next.js server is not running.
+
+### Requirements
+
+- `.env.local` (or `.env`) containing the required secrets, at minimum:
+  - `OPENAI_API_KEY` (or switch `provider` via CLI flags).
+  - Optional: `GOOGLE_GENERATIVE_AI_API_KEY`, calendar credentials, etc.
+- Dependencies installed via `pnpm install` so `pnpm run analyze:range:scheduler` can resolve `tsx`.
+
+### Manual execution
+
+```bash
+pnpm run analyze:range            # single run (looks back 30 minutes by default)
+pnpm run analyze:range:scheduler  # daemon-style scheduler; waits for next xx:00/xx:30
+```
+
+The scheduler enforces a 30 minute window and start times aligned to `HH:00` / `HH:30`. It skips overlapping runs and persists XML outputs under `./xml/`.
+
+### LaunchAgent (macOS) auto-start
+
+1. Create a wrapper script so macOS executes the scheduler with the correct PATH:
+
+   ```bash
+   mkdir -p ~/Library/Scripts
+   cat <<'EOF' > ~/Library/Scripts/run-range-analysis-scheduler.sh
+   #!/bin/zsh
+   cd /Users/<username>/src/github.com/wakamenori/activitywatch-util
+   /Users/<username>/.volta/bin/pnpm run analyze:range:scheduler
+   EOF
+   chmod +x ~/Library/Scripts/run-range-analysis-scheduler.sh
+   ```
+
+2. Install the LaunchAgent definition at `~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`:
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0">
+     <dict>
+       <key>Label</key>
+       <string>com.matsukokuumahikari.activitywatch.range</string>
+       <key>ProgramArguments</key>
+       <array>
+         <string>/bin/zsh</string>
+         <string>-lc</string>
+         <string>~/Library/Scripts/run-range-analysis-scheduler.sh</string>
+       </array>
+       <key>WorkingDirectory</key>
+       <string>/Users/<username>/src/github.com/wakamenori/activitywatch-util</string>
+       <key>EnvironmentVariables</key>
+       <dict>
+         <key>PATH</key>
+         <string>/Users/<username>/.volta/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+       </dict>
+       <key>KeepAlive</key>
+       <true/>
+       <key>RunAtLoad</key>
+       <true/>
+       <key>StandardOutPath</key>
+       <string>/Users/<username>/Library/Logs/run-range-analysis-scheduler.log</string>
+       <key>StandardErrorPath</key>
+       <string>/Users/<username>/Library/Logs/run-range-analysis-scheduler.error.log</string>
+     </dict>
+   </plist>
+   ```
+
+3. Load the agent (run once after creating the plist):
+
+   ```bash
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist
+   ```
+
+4. Restart it after code or config changes:
+
+   ```bash
+   launchctl kickstart -k gui/$(id -u)/com.matsukokuumahikari.activitywatch.range
+   ```
+
+5. Stop or remove it when needed:
+
+   ```bash
+   launchctl bootout gui/$(id -u)/com.matsukokuumahikari.activitywatch.range
+   ```
+
+### Monitoring & troubleshooting
+
+- Logs: `tail -f ~/Library/Logs/run-range-analysis-scheduler.log` and `.error.log`.
+- Verify status: `launchctl print gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` should show `state = running`.
+- Calendar creation requires the relevant environment variables (`GOOGLE_CALENDAR_*`) and `--create` flag (set in the LaunchAgent wrapper if needed).
