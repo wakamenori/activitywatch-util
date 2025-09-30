@@ -102,7 +102,7 @@ async function main() {
 		allowPositionals: false,
 	});
 
-	const provider = (values.provider || "openai").toLowerCase() as Provider;
+	const provider = (values.provider || "gemini").toLowerCase() as Provider;
 	const logPrefix = "[cli/run-range-analysis-scheduler]";
 
 	const createOption = values.create;
