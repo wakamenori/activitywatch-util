@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { config as loadEnv } from "dotenv";
 import type { Provider } from "@/lib/analyze-activity/llm";
-import { parseDateInput } from "@/lib/analyze-activity/range";
 import {
 	RangeAnalysisError,
 	runRangeAnalysis,
@@ -96,7 +95,6 @@ async function main() {
 			minutes: { type: "string" },
 			hours: { type: "string" },
 			interval: { type: "string" },
-			start: { type: "string" },
 			json: { type: "boolean" },
 		},
 		allowPositionals: false,
@@ -163,8 +161,6 @@ async function main() {
 
 	const lookbackMs = WINDOW_MS;
 
-	const floorToBoundary = (date: Date) =>
-		new Date(Math.floor(date.getTime() / WINDOW_MS) * WINDOW_MS);
 	const nextBoundaryAfter = (date: Date) => {
 		const remainder = date.getTime() % WINDOW_MS;
 		const base =
@@ -174,19 +170,6 @@ async function main() {
 		return new Date(base);
 	};
 	const isExactBoundary = (date: Date) => date.getTime() % WINDOW_MS === 0;
-
-	let lastEnd = (() => {
-		const parsed = parseDateInput(values.start);
-		if (!parsed) return null;
-		if (Number.isNaN(parsed.getTime())) return null;
-		const aligned = floorToBoundary(parsed);
-		if (!isExactBoundary(parsed)) {
-			console.warn(
-				`${logPrefix} start option rounded down to ${aligned.toISOString()} to maintain ${WINDOW_MINUTES}m window alignment`,
-			);
-		}
-		return aligned;
-	})();
 
 	let isRunning = false;
 	let timer: NodeJS.Timeout | undefined;
@@ -201,17 +184,7 @@ async function main() {
 
 		isRunning = true;
 		const end = new Date(targetEnd.getTime());
-		let start: Date;
-
-		if (lastEnd && lastEnd.getTime() < end.getTime()) {
-			start = new Date(lastEnd.getTime());
-		} else {
-			start = new Date(end.getTime() - lookbackMs);
-		}
-
-		if (start.getTime() >= end.getTime()) {
-			start = new Date(end.getTime() - lookbackMs);
-		}
+		const start = new Date(end.getTime() - lookbackMs);
 
 		const runLabel = `${start.toISOString()} → ${end.toISOString()}`;
 		console.info(`${logPrefix} start`, { trigger, range: runLabel });
@@ -225,8 +198,6 @@ async function main() {
 				logPrefix,
 				logger: console,
 			});
-
-			lastEnd = new Date(end.getTime());
 
 			if (values.json) {
 				console.log(
