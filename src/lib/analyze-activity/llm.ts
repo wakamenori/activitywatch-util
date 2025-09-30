@@ -14,7 +14,7 @@ export function selectModel(
 				error: "Missing GOOGLE_GENERATIVE_AI_API_KEY for Gemini provider",
 			};
 		}
-		return { ok: true, model: google("gemini-2.5-pro") };
+		return { ok: true, model: google("gemini-2.5-flash") };
 	}
 	if (provider === "openai") {
 		return { ok: true, model: openai.responses("gpt-5") };
