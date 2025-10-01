@@ -21,11 +21,15 @@ export async function POST(request: Request) {
 		const createCalendar = /^(1|true|yes)$/i.test(
 			searchParams.get("create") || "",
 		);
+		const saveXml = /^(1|true|yes)$/i.test(
+			searchParams.get("saveXml") || searchParams.get("save_xml") || "",
+		);
 		console.info(LOG, "request", {
 			startParam,
 			endParam,
 			provider,
 			createCalendar,
+			saveXml,
 		});
 
 		// Log calendar env readiness (no secrets)
@@ -66,6 +70,7 @@ export async function POST(request: Request) {
 			end,
 			provider,
 			createCalendar,
+			saveXml,
 			logPrefix: LOG,
 			logger: console,
 		});

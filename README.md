@@ -49,7 +49,7 @@ Environment variables:
 
 To use Gemini from the UI or API, pass `provider=gemini` in the query string.
 
-## Range Analysis Scheduler & LaunchAgent
+## Range Analysis Scheduler & Cron
 
 This project ships with a CLI scheduler that executes `runRangeAnalysis` every 30 minutes, even when the Next.js server is not running.
 
@@ -58,85 +58,48 @@ This project ships with a CLI scheduler that executes `runRangeAnalysis` every 3
 - `.env.local` (or `.env`) containing the required secrets, at minimum:
   - `OPENAI_API_KEY` (or switch `provider` via CLI flags).
   - Optional: `GOOGLE_GENERATIVE_AI_API_KEY`, calendar credentials, etc.
-- Dependencies installed via `pnpm install` so `pnpm run analyze:range:scheduler` can resolve `tsx`.
+- Dependencies installed via `pnpm install` so `pnpm run analyze:range` resolves `tsx` and other dependencies.
 
 ### Manual execution
 
 ```bash
 pnpm run analyze:range            # single run (looks back 30 minutes by default)
-pnpm run analyze:range:scheduler  # daemon-style scheduler; waits for next xx:00/xx:30
+pnpm run analyze:range -- --save-xml   # include XML persistence when needed
+pnpm run analyze:range:scheduler  # legacy daemon-style scheduler; still available for interactive runs
 ```
 
-The scheduler enforces a 30 minute window and start times aligned to `HH:00` / `HH:30`. It skips overlapping runs and persists XML outputs under `./xml/`.
+The scheduler enforces a 30 minute window aligned to `HH:00` / `HH:30`. It skips overlapping runs and only writes XML when `saveXml` is enabled (CLI flag, env, or query param).
 
-### LaunchAgent (macOS) auto-start
+### Cron (macOS/Linux) auto-start
 
-1. Create a wrapper script so macOS executes the scheduler with the correct PATH:
-
-   ```bash
-   mkdir -p ~/Library/Scripts
-   cat <<'EOF' > ~/Library/Scripts/run-range-analysis-scheduler.sh
-   #!/bin/zsh
-   cd /Users/<username>/src/github.com/wakamenori/activitywatch-util
-   /Users/<username>/.volta/bin/pnpm run analyze:range:scheduler
-   EOF
-   chmod +x ~/Library/Scripts/run-range-analysis-scheduler.sh
-   ```
-
-2. Install the LaunchAgent definition at `~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`:
-
-   ```xml
-   <?xml version="1.0" encoding="UTF-8"?>
-   <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-   <plist version="1.0">
-     <dict>
-       <key>Label</key>
-       <string>com.matsukokuumahikari.activitywatch.range</string>
-       <key>ProgramArguments</key>
-       <array>
-         <string>/bin/zsh</string>
-         <string>-lc</string>
-         <string>~/Library/Scripts/run-range-analysis-scheduler.sh</string>
-       </array>
-       <key>WorkingDirectory</key>
-       <string>/Users/<username>/src/github.com/wakamenori/activitywatch-util</string>
-       <key>EnvironmentVariables</key>
-       <dict>
-         <key>PATH</key>
-         <string>/Users/<username>/.volta/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-       </dict>
-       <key>KeepAlive</key>
-       <true/>
-       <key>RunAtLoad</key>
-       <true/>
-       <key>StandardOutPath</key>
-       <string>/Users/<username>/Library/Logs/run-range-analysis-scheduler.log</string>
-       <key>StandardErrorPath</key>
-       <string>/Users/<username>/Library/Logs/run-range-analysis-scheduler.error.log</string>
-     </dict>
-   </plist>
-   ```
-
-3. Load the agent (run once after creating the plist):
+1. Use the in-repo wrapper located at `scripts/run-range-analysis-cron.sh`. It sets up PATH (Volta/PNPM aware), writes daily logs to `logs/run-range-analysis/`, and invokes `pnpm run analyze:range`.
 
    ```bash
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist
+   # One-off test
+   bash scripts/run-range-analysis-cron.sh
+   tail -f logs/run-range-analysis/$(date +%Y%m%d).log
    ```
 
-4. Restart it after code or config changes:
+2. Schedule it every 30 minutes aligned to `HH:00` and `HH:30` via `crontab`:
 
    ```bash
-   launchctl kickstart -k gui/$(id -u)/com.matsukokuumahikari.activitywatch.range
+   crontab -l  # optional: inspect current entries
+   (crontab -l 2>/dev/null; echo "0,30 * * * * /Users/<username>/src/github.com/wakamenori/activitywatch-util/scripts/run-range-analysis-cron.sh") | crontab -
    ```
 
-5. Stop or remove it when needed:
+   Cron uses a minimal environment, so the wrapper handles PATH/Volta automatically. Logs accumulate at `logs/run-range-analysis/YYYYMMDD.log`.
+
+3. To disable or adjust the schedule, edit the crontab:
 
    ```bash
-   launchctl bootout gui/$(id -u)/com.matsukokuumahikari.activitywatch.range
+   crontab -e            # edit entries
+   crontab -r            # remove all cron jobs for the current user
    ```
+
+   After removing the job, you can delete the `logs/run-range-analysis/` directory if desired.
 
 ### Monitoring & troubleshooting
 
-- Logs: `tail -f ~/Library/Logs/run-range-analysis-scheduler.log` and `.error.log`.
-- Verify status: `launchctl print gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` should show `state = running`.
-- Calendar creation requires the relevant environment variables (`GOOGLE_CALENDAR_*`) and `--create` flag (set in the LaunchAgent wrapper if needed).
+- Logs: `tail -f logs/run-range-analysis/$(date +%Y%m%d).log`
+- Cron diagnostics (macOS): `log show --predicate 'process == "cron"' --last 1h`
+- Calendar creation requires the relevant environment variables (`GOOGLE_CALENDAR_*`) and `--create` flag or env override.

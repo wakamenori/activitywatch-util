@@ -96,6 +96,7 @@ async function main() {
 			hours: { type: "string" },
 			interval: { type: "string" },
 			json: { type: "boolean" },
+			"save-xml": { type: "boolean" },
 		},
 		allowPositionals: false,
 	});
@@ -116,17 +117,44 @@ async function main() {
 			? createOption
 			: (envCreate ?? calendarConfigured);
 
+	const saveXmlOption = values["save-xml"];
+	const envSaveXml = readBooleanEnv(
+		"ANALYZE_RANGE_SCHEDULER_SAVE_XML",
+		"RANGE_ANALYSIS_SCHEDULER_SAVE_XML",
+		"ANALYZE_RANGE_SAVE_XML",
+	);
+	const saveXml =
+		typeof saveXmlOption === "boolean" ? saveXmlOption : envSaveXml ?? false;
+
 	console.info(`${logPrefix} calendar settings`, {
 		flag: createOption,
 		env: envCreate,
 		calendarConfigured,
 		createCalendar,
+		saveXml,
 	});
 	if (typeof createOption !== "boolean") {
 		const reason = envCreate !== undefined ? "env" : "calendar-config";
 		console.info(`${logPrefix} calendar default`, {
 			reason,
 			enabled: createCalendar,
+		});
+	}
+
+	if (typeof saveXmlOption !== "boolean" && envSaveXml === undefined) {
+		console.info(`${logPrefix} xml persistence`, {
+			saveXml,
+			reason: "default-off",
+		});
+	} else {
+		console.info(`${logPrefix} xml persistence`, {
+			saveXml,
+			source:
+				typeof saveXmlOption === "boolean"
+					? "flag"
+					: envSaveXml !== undefined
+						? "env"
+						: "default",
 		});
 	}
 
@@ -195,6 +223,7 @@ async function main() {
 				end,
 				provider,
 				createCalendar,
+				saveXml,
 				logPrefix,
 				logger: console,
 			});
@@ -217,6 +246,7 @@ async function main() {
 					counts: result.counts,
 					provider: result.provider,
 					calendar: result.calendarResult,
+					xmlSaved: Boolean(result.xmlPath),
 				});
 			}
 		} catch (error) {

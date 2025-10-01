@@ -57,6 +57,8 @@ async function main() {
 			end: { type: "string" },
 			provider: { type: "string" },
 			create: { type: "boolean" },
+			"no-calendar": { type: "boolean" },
+			"save-xml": { type: "boolean" },
 			minutes: { type: "string" },
 			hours: { type: "string" },
 			json: { type: "boolean" },
@@ -65,7 +67,17 @@ async function main() {
 	});
 
 	const provider = (values.provider || "openai").toLowerCase() as Provider;
-	const createCalendar = Boolean(values.create);
+	const disableCalendar = Boolean(values["no-calendar"]);
+	const saveXml = Boolean(values["save-xml"]);
+	let createCalendar = true;
+
+	if (typeof values.create === "boolean") {
+		createCalendar = values.create;
+	}
+
+	if (disableCalendar) {
+		createCalendar = false;
+	}
 
 	const now = new Date();
 	const end = parseDateInput(values.end) ?? now;
@@ -99,6 +111,7 @@ async function main() {
 		end,
 		provider,
 		createCalendar,
+		saveXml,
 		logPrefix,
 		logger: console,
 	});
@@ -123,9 +136,17 @@ async function main() {
 	console.log("analysis:");
 	console.log(result.result);
 	console.log("");
-	console.log(`xml: ${result.xmlPath || "(not saved)"}`);
+	if (result.xmlPath) {
+		console.log(`xml: ${result.xmlPath}`);
+	} else if (saveXml) {
+		console.log("xml: save requested but file was not written");
+	} else {
+		console.log("xml: not saved (--save-xml not set)");
+	}
 	if (result.calendarResult) {
 		console.log("calendar:", result.calendarResult);
+	} else if (!createCalendar) {
+		console.log("calendar: disabled (--no-calendar)");
 	} else {
 		console.log("calendar: not requested");
 	}

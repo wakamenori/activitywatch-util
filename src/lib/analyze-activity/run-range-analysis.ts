@@ -37,6 +37,7 @@ export interface RangeAnalysisInput {
 	end: Date;
 	provider: Provider;
 	createCalendar: boolean;
+	saveXml: boolean;
 	logPrefix?: string;
 	logger?: ConsoleLogger;
 }
@@ -82,6 +83,7 @@ export async function runRangeAnalysis({
 	end,
 	provider,
 	createCalendar,
+	saveXml,
 	logPrefix = "[runRangeAnalysis]",
 	logger = console,
 }: RangeAnalysisInput): Promise<RangeAnalysisResult> {
@@ -158,8 +160,13 @@ export async function runRangeAnalysis({
 
 	log("snapshots", { files: snapshots.length });
 
-	const xmlPath = await persistXML(activityXML);
-	log("xml", { path: xmlPath, chars: activityXML.length });
+	let xmlPath: string | null = null;
+	if (saveXml) {
+		xmlPath = await persistXML(activityXML);
+		log("xml", { path: xmlPath, chars: activityXML.length });
+	} else {
+		log("xml-skip", { reason: "disabled", chars: activityXML.length });
+	}
 
 	const timeRangeLabel = formatRangeLabel(start, end);
 	const humanSummary = buildHumanSummary(stats);

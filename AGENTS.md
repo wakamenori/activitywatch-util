@@ -73,9 +73,9 @@ Keep this document current whenever agent behavior, tooling, or repository conve
 
 ## Range Analysis Scheduler
 
-- **Scripts**: One-off runs use `scripts/run-range-analysis.ts` via `pnpm run analyze:range`. The recurring scheduler lives in `scripts/run-range-analysis-scheduler.ts` and is exposed as `pnpm run analyze:range:scheduler`.
-- **Interval & window**: The scheduler always processes 30-minute windows aligned to clock boundaries (xx:00 and xx:30). It waits for the next boundary at startup, then repeats every 30 minutes, skipping overlaps if a previous run is still in progress.
-- **LaunchAgent setup**: macOS auto-start is handled by `~/Library/Scripts/run-range-analysis-scheduler.sh` (Volta `pnpm` wrapper) and `~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`. Keep `PATH` entries intact so `pnpm`/`tsx` resolve.
-- **Logs**: Scheduler stdout/stderr stream to `~/Library/Logs/run-range-analysis-scheduler.log` and `~/Library/Logs/run-range-analysis-scheduler.error.log`. Use `tail -f` to monitor, or clear with `: >` when needed.
-- **Refreshing after changes**: After modifying scheduler code, rerun `pnpm install` if dependencies changed, then execute `launchctl kickstart -k gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` to reload the agent. Use `launchctl print gui/$(id -u)/com.matsukokuumahikari.activitywatch.range` to verify `state = running`.
-- **Disable/re-enable**: Stop with `launchctl bootout gui/$(id -u)/com.matsukokuumahikari.activitywatch.range`; restart with `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.matsukokuumahikari.activitywatch.range.plist`.
+- **Scripts**: One-off runs use `scripts/run-range-analysis.ts` (`pnpm run analyze:range`). The cron-ready wrapper lives in `scripts/run-range-analysis-cron.sh`; it configures PATH, runs the CLI, and appends logs to `logs/run-range-analysis/YYYYMMDD.log`.
+- **Interval & window**: The scheduler processes 30-minute windows aligned to clock boundaries (xx:00/xx:30). The cron entry should be `0,30 * * * * /Users/<username>/src/github.com/wakamenori/activitywatch-util/scripts/run-range-analysis-cron.sh`.
+- **Setup**: Install the cron job with `(crontab -l 2>/dev/null; echo "0,30 * * * * …/scripts/run-range-analysis-cron.sh") | crontab -`. Cron’s minimal environment is handled inside the script; no LaunchAgent files are required.
+- **Logs**: Tail `logs/run-range-analysis/$(date +%Y%m%d).log` for runtime output. System-level cron diagnostics (macOS) are available via `log show --predicate 'process == "cron"' --last 1h`.
+- **Refreshing after changes**: Re-run `pnpm install` if dependencies changed, then test with `bash scripts/run-range-analysis-cron.sh`. Cron picks up the script automatically on the next scheduled boundary.
+- **Disable/re-enable**: Edit with `crontab -e` or remove everything via `crontab -r`. Clean up logs under `logs/run-range-analysis/` if no longer needed.
