@@ -90,7 +90,7 @@ async function main() {
 		? minutesInput
 		: Number.isFinite(hoursInput)
 			? hoursInput * 60
-			: 60;
+			: 30;
 
 	let start = parseDateInput(values.start);
 	if (!start) {
