@@ -16,7 +16,7 @@ LOG_FILE="$LOG_DIR/$(date +%Y%m%d).log"
 log() {
 	local level="$1"
 	shift
-	printf '%s [%s] %s\n' "$(date -Iseconds)" "$level" "$*" | tee -a "$LOG_FILE"
+	printf '%s [%s] %s\n' "$(TZ=Asia/Tokyo date -Iseconds)" "$level" "$*" | tee -a "$LOG_FILE"
 }
 
 cd "$REPO_DIR"
