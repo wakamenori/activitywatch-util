@@ -72,7 +72,7 @@ The scheduler enforces a 30 minute window aligned to `HH:00` / `HH:30`. It skips
 
 ### Cron (macOS/Linux) auto-start
 
-1. Use the in-repo wrapper located at `scripts/run-range-analysis-cron.sh`. It sets up PATH (Volta/PNPM aware), writes daily logs to `logs/run-range-analysis/`, and invokes `pnpm run analyze:range`.
+1. Use the in-repo wrapper located at `scripts/run-range-analysis-cron.sh`. It sets up PATH (Volta/PNPM aware), writes daily logs to `logs/run-range-analysis/`, and invokes `pnpm run analyze:range`. Cron executes the wrapper directly, so make sure it is executable (`chmod +x scripts/run-range-analysis-cron.sh`) before adding it to your crontab.
 
    ```bash
    # One-off test

@@ -75,7 +75,7 @@ Keep this document current whenever agent behavior, tooling, or repository conve
 
 - **Scripts**: One-off runs use `scripts/run-range-analysis.ts` (`pnpm run analyze:range`). The cron-ready wrapper lives in `scripts/run-range-analysis-cron.sh`; it configures PATH, runs the CLI, and appends logs to `logs/run-range-analysis/YYYYMMDD.log`.
 - **Interval & window**: The scheduler processes 30-minute windows aligned to clock boundaries (xx:00/xx:30). The cron entry should be `0,30 * * * * /Users/<username>/src/github.com/wakamenori/activitywatch-util/scripts/run-range-analysis-cron.sh`.
-- **Setup**: Install the cron job with `(crontab -l 2>/dev/null; echo "0,30 * * * * …/scripts/run-range-analysis-cron.sh") | crontab -`. Cron’s minimal environment is handled inside the script; no LaunchAgent files are required.
+- **Setup**: Install the cron job with `(crontab -l 2>/dev/null; echo "0,30 * * * * …/scripts/run-range-analysis-cron.sh") | crontab -`. Cron’s minimal environment is handled inside the script; no LaunchAgent files are required. Ensure the wrapper keeps its execute bit (`chmod +x scripts/run-range-analysis-cron.sh`) or cron will fail with `Permission denied`.
 - **Logs**: Tail `logs/run-range-analysis/$(date +%Y%m%d).log` for runtime output. System-level cron diagnostics (macOS) are available via `log show --predicate 'process == "cron"' --last 1h`.
 - **Refreshing after changes**: Re-run `pnpm install` if dependencies changed, then test with `bash scripts/run-range-analysis-cron.sh`. Cron picks up the script automatically on the next scheduled boundary.
 - **Disable/re-enable**: Edit with `crontab -e` or remove everything via `crontab -r`. Clean up logs under `logs/run-range-analysis/` if no longer needed.
