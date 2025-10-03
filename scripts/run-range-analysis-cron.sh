@@ -21,9 +21,9 @@ log() {
 
 cd "$REPO_DIR"
 
-log INFO "starting pnpm run analyze:range -- --minutes 30"
-if pnpm run analyze:range -- --minutes 30; then
-	log INFO "finished pnpm run analyze:range -- --minutes 30"
+log INFO "starting pnpm run analyze:range --minutes 30"
+if pnpm run analyze:range --minutes 30; then
+	log INFO "finished pnpm run analyze:range --minutes 30"
 else
 	log ERROR "pnpm run analyze:range failed"
 	exit 1
