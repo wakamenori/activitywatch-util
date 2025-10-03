@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { persistXML } from "@/lib/analyze-activity/files";
@@ -31,6 +32,14 @@ const calendarSchema = z.object({
 type CalendarObject = z.infer<typeof calendarSchema>;
 
 type ConsoleLogger = Pick<typeof console, "info" | "error">;
+
+const MACHINE_NAME = (() => {
+	try {
+		return hostname().trim();
+	} catch {
+		return "";
+	}
+})();
 
 export interface RangeAnalysisInput {
 	start: Date;
@@ -216,13 +225,18 @@ export async function runRangeAnalysis({
 
 	let calendar: RangeAnalysisResult["calendarResult"] = null;
 	if (createCalendar) {
+		const titleCandidate = calendarObject?.title?.trim();
+		const baseSummary =
+			titleCandidate && titleCandidate.length > 0
+				? titleCandidate
+				: `作業 (${timeRangeLabel})`;
+		const prefixedSummary = MACHINE_NAME
+			? `[${MACHINE_NAME}] ${baseSummary}`
+			: baseSummary;
 		calendar = await createCalendarEventIfConfigured({
 			start,
 			end,
-			summary: (calendarObject?.title || `作業 (${timeRangeLabel})`).slice(
-				0,
-				50,
-			),
+			summary: prefixedSummary.slice(0, 50),
 			description: (() => {
 				const lines: string[] = [];
 				if (calendarObject?.summary) lines.push(calendarObject.summary);
