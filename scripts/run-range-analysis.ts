@@ -66,7 +66,7 @@ async function main() {
 		allowPositionals: false,
 	});
 
-	const provider = (values.provider || "openai").toLowerCase() as Provider;
+	const provider = (values.provider || "gemini").toLowerCase() as Provider;
 	const disableCalendar = Boolean(values["no-calendar"]);
 	const saveXml = Boolean(values["save-xml"]);
 	let createCalendar = true;
